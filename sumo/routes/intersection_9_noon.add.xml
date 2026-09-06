@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<additional>
+  <tlLogic id="J" type="static" programID="J_noon" offset="0">
+    <phase duration="59" state="GGGGGGGGGGGG"/>
+    <phase duration="51" state="GGGGGGGGGGGG"/>
+    <phase duration="35" state="GGGGGGGGGGGG"/>
+  </tlLogic>
+</additional>

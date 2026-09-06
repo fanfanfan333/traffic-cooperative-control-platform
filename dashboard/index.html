@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>车路云一体化协同管控 · 实时数据可视化平台</title>
+<script src="echarts.min.js"></script>
+<style>
+  :root {
+    --bg:#0a0f1e; --panel:rgba(17,26,44,.82); --line:#24324f; --txt:#e3ebfa;
+    --sub:#8291b4; --acc:#37d2c5; --acc2:#7c8cff; --good:#4ade80; --bad:#f87171;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body {
+    background:
+      radial-gradient(1000px 500px at 85% -10%, rgba(124,140,255,.14), transparent 60%),
+      radial-gradient(900px 480px at 5% -10%, rgba(55,210,197,.12), transparent 60%),
+      var(--bg);
+    color:var(--txt); font-family:"Microsoft YaHei","PingFang SC",sans-serif;
+    padding:18px 22px; min-height:100vh;
+  }
+  .bar { display:flex; align-items:flex-end; justify-content:space-between; flex-wrap:wrap; gap:12px; }
+  h1 {
+    font-size:20px; letter-spacing:1px;
+    background:linear-gradient(90deg,#5eead4,#93c5fd 55%,#c4b5fd);
+    -webkit-background-clip:text; background-clip:text; color:transparent;
+  }
+  .sub { color:var(--sub); font-size:12px; margin-top:4px; }
+  .ctrl { display:flex; align-items:center; gap:8px; font-size:13px; color:var(--sub); }
+  .sel {
+    background:rgba(30,42,68,.9); color:var(--txt); border:1px solid var(--line);
+    border-radius:8px; padding:6px 10px; font-size:13px; outline:none; cursor:pointer;
+  }
+  .badge {
+    display:inline-block; padding:3px 12px; border-radius:20px; font-size:12px;
+    background:rgba(55,210,197,.1); color:var(--acc); border:1px solid rgba(55,210,197,.45);
+  }
+  .live::before { content:""; display:inline-block; width:7px; height:7px; border-radius:50%;
+    background:var(--acc); margin-right:6px; animation:pulse 1.4s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.25} }
+
+  .kpis { display:grid; grid-template-columns:repeat(6,1fr); gap:12px; margin:16px 0; }
+  .card {
+    background:linear-gradient(180deg, rgba(30,42,68,.75), rgba(17,26,44,.9));
+    border:1px solid var(--line); border-radius:14px; padding:14px 16px;
+    box-shadow:0 10px 26px rgba(0,0,0,.35); transition:transform .15s ease;
+  }
+  .card:hover { transform:translateY(-2px); }
+  .card .k { color:var(--sub); font-size:12px; display:flex; align-items:center; gap:6px; }
+  .card .a { font-size:25px; font-weight:700; font-family:Consolas,Menlo,monospace; margin-top:6px; }
+  .card .a .u { font-size:12px; color:var(--sub); font-weight:normal; margin-left:3px; }
+  .card .b { font-size:11.5px; color:var(--sub); margin-top:3px; }
+  .delta { font-size:11px; padding:2px 8px; border-radius:9px; margin-left:8px; font-family:Consolas,monospace; }
+  .good { background:rgba(74,222,128,.12); color:var(--good); }
+  .bad  { background:rgba(248,113,113,.12); color:var(--bad); }
+
+  .grid { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+  .chart {
+    background:var(--panel); border:1px solid var(--line); border-radius:14px;
+    padding:10px 12px 6px; box-shadow:0 10px 26px rgba(0,0,0,.3);
+  }
+  .chart h3 { font-size:13.5px; margin:2px 4px 6px; display:flex; align-items:center; gap:8px; }
+  .chart h3 .t { color:var(--txt); font-weight:600; }
+  .chart h3 .d { color:var(--sub); font-weight:normal; font-size:11.5px; }
+  .full { grid-column:1 / span 2; }
+  .chips { display:flex; flex-wrap:wrap; gap:6px 14px; margin:0 4px 6px; }
+  .chip { font-size:11.5px; color:var(--sub); display:flex; align-items:center; gap:5px; }
+  .dot { width:10px; height:10px; border-radius:3px; display:inline-block; }
+  .line { width:16px; height:0; border-top:2.5px solid; display:inline-block; }
+  .line.dash { border-top-style:dashed; }
+  #c-queue { height:295px; } #c-phase { height:230px; } #c-speed,#c-arrived { height:275px; }
+  .foot { color:var(--sub); font-size:11.5px; margin-top:12px; line-height:1.7; }
+</style>
+</head>
+<body>
+<div class="bar">
+  <div>
+    <h1>面向雄安新区"城市大脑"的车路云一体化协同管控平台</h1>
+    <div class="sub">功能二 · 实时数据可视化 ｜ 端（TraCI逐秒采样：轨迹·排队·相位·油耗） → 边（进口道聚合·停车事件检测） → 云（本看板） ｜ 数据目录 collected_data/</div>
+  </div>
+  <div class="ctrl">
+    <span class="chip"><span class="line dash" style="border-color:#8291b4"></span>基准方案（虚线）</span>
+    <select id="selA" class="sel"></select>
+    <span class="chip"><span class="line" style="border-color:#37d2c5"></span>对比方案（实线）</span>
+    <select id="selB" class="sel"></select>
+    <span id="live" class="badge live">实时刷新</span>
+  </div>
+</div>
+
+<div class="kpis" id="kpis"></div>
+
+<div class="grid">
+  <div class="chart">
+    <h3><span class="t">各进口道排队长度</span><span class="d">冻结车辆数 · 颜色=进口方向 · 线型=方案</span></h3>
+    <div class="chips" id="legend-queue"></div>
+    <div id="c-queue"></div>
+  </div>
+  <div class="chart">
+    <h3><span class="t">路口信号相位时间轴</span><span class="d" id="phase-run"></span></h3>
+    <div class="chips" id="legend-phase"></div>
+    <div id="c-phase"></div>
+  </div>
+  <div class="chart">
+    <h3><span class="t">网络平均车速</span><span class="d">km/h · 越高越畅行</span></h3>
+    <div class="chips" id="legend-speed"></div>
+    <div id="c-speed"></div>
+  </div>
+  <div class="chart">
+    <h3><span class="t">累计通过车辆</span><span class="d">辆 · 通行能力直接体现</span></h3>
+    <div class="chips" id="legend-arrived"></div>
+    <div id="c-arrived"></div>
+  </div>
+</div>
+<div class="foot">
+  阅读说明：KPI 卡片大字为<b>对比方案</b>，小字为<b>基准方案</b>，百分比 = 对比方案相对基准的变化（<span style="color:var(--good)">绿=改善</span> / <span style="color:var(--bad)">红=劣化</span>）。
+  排队图中颜色固定表示进口方向：东·琥珀 / 南·天蓝 / 西·紫 / 北·绿；<b>实线 = 对比方案，虚线 = 基准方案</b>。
+  相位时间轴颜色表示该时刻放行状态：<span style="color:#34d399">■东西绿</span> <span style="color:#38bdf8">■南北绿</span> <span style="color:#a3e635">■双向绿</span> <span style="color:#fbbf24">■黄灯</span> <span style="color:#64748b">■全红</span>。
+</div>
+
+<script>
+const charts = {};
+for (const id of ["c-queue","c-phase","c-speed","c-arrived"])
+  charts[id] = echarts.init(document.getElementById(id), "dark");
+window.addEventListener("resize", () => Object.values(charts).forEach(c => c.resize()));
+
+const DIRS = ["东","南","西","北"];
+const DCOLOR = { "东":"#f59e0b", "南":"#38bdf8", "西":"#a78bfa", "北":"#4ade80" };
+const DIRNAME = { "东":"东进口", "南":"南进口", "西":"西进口", "北":"北进口" };
+const PCOLOR = ["#34d399","#38bdf8","#a3e635","#4ade80","#fbbf24","#64748b"];
+const PLABEL = ["东西向绿","南北向绿","东西+南北绿","绿灯","黄灯过渡","全红清空"];
+const displayName = l => ({fixed:"固定配时·基准", dqn:"DQN协同管控", art_fixed:"固定配时(干线)", art_dqn:"DQN协同(干线)"}[l] || l);
+
+async function jget(u){ const r = await fetch(u); return r.json(); }
+
+async function refreshRuns(){
+  const runs = (await jget("/api/runs")).runs;   // [{label, mode}]
+  for (const [sel, prefer] of [[document.getElementById("selA"), "fixed"], [document.getElementById("selB"), "dqn"]]) {
+    const cur = sel.value;
+    sel.innerHTML = runs.map(r => `<option value="${r.label}">${displayName(r.label)}（${r.mode}）</option>`).join("");
+    sel.value = runs.some(r => r.label === cur) ? cur
+              : (runs.find(r => r.label.includes(prefer)) || runs[0] || {}).label || "";
+  }
+}
+
+function kpiCard(name, unit, va, vb, goodDir){
+  let d = "";
+  if (va !== undefined && vb !== undefined && va !== null && vb !== null && va !== 0) {
+    const pct = (vb - va) / va * 100;
+    if (Math.abs(pct) > 0.05) {
+      const good = goodDir === "lower" ? pct < 0 : pct > 0;
+      d = `<span class="delta ${good ? "good" : "bad"}">${pct >= 0 ? "+" : ""}${pct.toFixed(1)}%</span>`;
+    }
+  }
+  const fmt = x => (x === undefined || x === null) ? "-" : (Math.abs(x) >= 100 ? Math.round(x) : x.toFixed(x < 10 ? 2 : 1));
+  return `<div class="card" title="${name}：对比方案 vs 基准方案">
+    <div class="k">${name}</div>
+    <div class="a">${fmt(vb)}<span class="u">${unit}</span>${d}</div>
+    <div class="b">基准 ${fmt(va)} ${unit}</div></div>`;
+}
+
+function lineChips(el, entries){
+  document.getElementById(el).innerHTML = entries
+    .map(([color, dash, text]) => `<span class="chip"><span class="line ${dash?"dash":""}" style="border-color:${color}"></span>${text}</span>`).join("");
+}
+
+let lastSig = "";
+async function refresh(){
+  const a = document.getElementById("selA").value, b = document.getElementById("selB").value;
+  if (!a || !b) return;
+  const [da, db] = await Promise.all([jget(`/api/data?run=${a}`), jget(`/api/data?run=${b}`)]);
+  const sig = JSON.stringify([da.sig, db.sig, a, b]);
+  if (sig === lastSig) return;
+  lastSig = sig;
+  const la = displayName(a), lb = displayName(b);
+
+  const ka = da.meta?.kpi || {}, kb = db.meta?.kpi || {};
+  document.getElementById("kpis").innerHTML =
+    kpiCard("仿真时长", "s", da.metrics.time.at(-1), db.metrics.time.at(-1), "higher") +
+    kpiCard("累计通过", "辆", ka.arrived, kb.arrived, "higher") +
+    kpiCard("平均等待", "s/车", ka.mean_wait_s, kb.mean_wait_s, "lower") +
+    kpiCard("平均车速", "km/h", +(ka.mean_speed_mps*3.6).toFixed(1), +(kb.mean_speed_mps*3.6).toFixed(1), "higher") +
+    kpiCard("平均排队", "辆", ka.avg_total_queue, kb.avg_total_queue, "lower") +
+    kpiCard("总油耗", "L", ka.fuel_liters, kb.fuel_liters, "lower");
+
+  // ── 排队长度对比: 颜色=方向, 线型=方案 ──
+  lineChips("legend-queue", [
+    [DCOLOR["东"], false, "东进口"], [DCOLOR["南"], false, "南进口"],
+    [DCOLOR["西"], false, "西进口"], [DCOLOR["北"], false, "北进口"],
+    ["#e3ebfa", false, `实线 = ${lb}`], ["#8291b4", true, `虚线 = ${la}`]]);
+  const qseries = [];
+  for (const [d, data] of Object.entries(db.queues))
+    qseries.push({ name: `${lb}·${DIRNAME[d]}`, type: "line", showSymbol: false, data: data,
+                   lineStyle: { width: 2.2, color: DCOLOR[d] }, itemStyle: { color: DCOLOR[d] } });
+  for (const [d, data] of Object.entries(da.queues))
+    qseries.push({ name: `${la}·${DIRNAME[d]}`, type: "line", showSymbol: false, data: data,
+                   lineStyle: { width: 1.6, type: "dashed", opacity: .8, color: DCOLOR[d] },
+                   itemStyle: { color: DCOLOR[d] } });
+  charts["c-queue"].setOption({
+    backgroundColor: "transparent", tooltip: { trigger: "axis" },
+    legend: { top: 0, textStyle: { fontSize: 10, color: "#8291b4" }, itemWidth: 18 },
+    grid: { left: 42, right: 14, top: 32, bottom: 24 },
+    xAxis: { type: "category", data: db.metrics.time.map(v => `${v}s`), axisLabel: { fontSize: 9 } },
+    yAxis: { type: "value", name: "辆", nameTextStyle: { fontSize: 10 } },
+    series: qseries });
+
+  // ── 相位时间轴: 语义色码 + 动态图例 ──
+  const tls = da.phases.tls, mat = da.phases.matrix, legend = da.phases.legend || [];
+  document.getElementById("legend-phase").innerHTML =
+    `<span class="chip" style="color:#e3ebfa">基准方案 ${la}</span>` +
+    legend.map(l => `<span class="chip"><span class="dot" style="background:${l.color}"></span>${l.label}</span>`).join("");
+  const cells = [];
+  for (let yi = 0; yi < tls.length; yi++)
+    for (let xi = 0; xi < mat[yi].length; xi++)
+      if (mat[yi][xi] !== null) cells.push([xi, yi, mat[yi][xi]]);
+  const labelOf = code => (legend.find(l => l.code === code) || {}).label || code;
+  charts["c-phase"].setOption({
+    backgroundColor: "transparent",
+    tooltip: { formatter: p => `${tls[p.value[1]]} ｜ t=${p.value[0]*da.phases.stride}s ｜ ${labelOf(p.value[2])}` },
+    grid: { left: 42, right: 14, top: 8, bottom: 24 },
+    xAxis: { type: "category", data: mat[0].map((_, i) => `${i * da.phases.stride}s`), axisLabel: { fontSize: 9 } },
+    yAxis: { type: "category", data: tls, axisLabel: { fontSize: 10 } },
+    visualMap: { show: false, type: "piecewise",
+      pieces: legend.map(l => ({ value: l.code, color: l.color })) },
+    series: [{ type: "heatmap", data: cells, progressive: 5000 }] });
+
+  // ── 速度 / 累计通过 ──
+  lineChips("legend-speed", [["#37d2c5", false, lb], ["#f59e0b", true, la]]);
+  lineChips("legend-arrived", [["#37d2c5", false, lb], ["#f59e0b", true, la]]);
+  charts["c-speed"].setOption({
+    backgroundColor: "transparent", tooltip: { trigger: "axis" },
+    grid: { left: 46, right: 14, top: 14, bottom: 24 },
+    xAxis: { type: "category", data: db.metrics.time.map(v => `${v}s`), axisLabel: { fontSize: 9 } },
+    yAxis: { type: "value", name: "km/h", nameTextStyle: { fontSize: 10 } },
+    series: [
+      { name: lb, type: "line", showSymbol: false, data: db.metrics.speed_kmh,
+        lineStyle: { color: "#37d2c5", width: 2.2 }, itemStyle: { color: "#37d2c5" },
+        areaStyle: { color: "rgba(55,210,197,.10)" } },
+      { name: la, type: "line", showSymbol: false, data: da.metrics.speed_kmh,
+        lineStyle: { color: "#f59e0b", width: 1.6, type: "dashed" }, itemStyle: { color: "#f59e0b" } }] });
+  charts["c-arrived"].setOption({
+    backgroundColor: "transparent", tooltip: { trigger: "axis" },
+    grid: { left: 46, right: 14, top: 14, bottom: 24 },
+    xAxis: { type: "category", data: db.metrics.time.map(v => `${v}s`), axisLabel: { fontSize: 9 } },
+    yAxis: { type: "value", name: "辆", nameTextStyle: { fontSize: 10 } },
+    series: [
+      { name: lb, type: "line", showSymbol: false, data: db.metrics.arrived_cum,
+        lineStyle: { color: "#37d2c5", width: 2.2 }, itemStyle: { color: "#37d2c5" },
+        areaStyle: { color: "rgba(55,210,197,.14)" } },
+      { name: la, type: "line", showSymbol: false, data: da.metrics.arrived_cum,
+        lineStyle: { color: "#f59e0b", width: 1.6, type: "dashed" }, itemStyle: { color: "#f59e0b" } }] });
+}
+
+(async () => {
+  await refreshRuns();
+  setInterval(refreshRuns, 5000);
+  await refresh();
+  setInterval(refresh, 2000);
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<additional>
+  <tlLogic id="J" type="static" programID="T" offset="0">
+    <phase duration="11"   state="GGggrrrrrrrr"/>
+    <phase duration="3"     state="yyggrrrrrrrr"/>
+    <phase duration="1" state="rrGGrrrrrrrr"/>
+    <phase duration="11"   state="GGggrrrrrrrr"/>
+    <phase duration="3"     state="yyggrrrrrrrr"/>
+    <phase duration="1" state="rrGGrrrrrrrr"/>
+    <phase duration="10"   state="GGggrrrrrrrr"/>
+    <phase duration="3"     state="yyggrrrrrrrr"/>
+    <phase duration="1" state="rrGGrrrrrrrr"/>
+    <phase duration="10"   state="GGggrrrrrrrr"/>
+    <phase duration="3"     state="yyggrrrrrrrr"/>
+    <phase duration="1" state="rrGGrrrrrrrr"/>
+  </tlLogic></additional>

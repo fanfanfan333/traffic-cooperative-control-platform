@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+    <input>
+        <net-file value="net/intersection_19.net.xml"/>
+        <route-files value="routes/intersection_19.rou.xml"/>
+    </input>
+    <time><begin value="0"/><end value="3600"/></time>
+    <output>
+        <tripinfo-output value="results/tripinfo_19.xml"/>
+    </output>
+    <processing><time-to-teleport value="-1"/></processing>
+</configuration>

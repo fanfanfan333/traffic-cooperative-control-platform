@@ -1,0 +1,31 @@
+# Python
+__pycache__/
+*.pyc
+
+# IDE
+.idea/
+.vscode/
+
+# SUMO 运行产物(自动重建)
+sumo/results/
+sumo/arterial/results/
+
+# 数据采集产物(可重新采集)
+collected_data/
+
+# 模型文件: 只保留当前统一模型及其续训状态
+*.pt
+*.pt.eps.txt
+*.pt.calib.json
+!dqn_unified.pt
+!dqn_unified.pt.eps.txt
+!dqn_unified.pt.calib.json
+
+# 历史实验产物(与当前模型无关)
+test_log_*.csv
+episode_log.csv.bak_*
+dqn_eval_smoke*
+_rob_*.csv
+
+# 临时
+*.tmp

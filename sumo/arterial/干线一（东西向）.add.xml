@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<additional>
+  <tlLogic id="J0" type="static" programID="coord" offset="0">
+    <phase duration="108" state="GGggrrrrrrrr"/>
+    <phase duration="4" state="yyggrrrrrrrr"/>
+    <phase duration="66" state="rrGGrrrrrrrr"/>
+    <phase duration="2" state="rryyrrrrrrrr"/>
+  </tlLogic>
+  <tlLogic id="J1" type="static" programID="coord" offset="45">
+    <phase duration="108" state="GGggrrrrrrrr"/>
+    <phase duration="4" state="yyggrrrrrrrr"/>
+    <phase duration="66" state="rrGGrrrrrrrr"/>
+    <phase duration="2" state="rryyrrrrrrrr"/>
+  </tlLogic>
+  <tlLogic id="J2" type="static" programID="coord" offset="90">
+    <phase duration="108" state="GGggrrrrrrrr"/>
+    <phase duration="4" state="yyggrrrrrrrr"/>
+    <phase duration="66" state="rrGGrrrrrrrr"/>
+    <phase duration="2" state="rryyrrrrrrrr"/>
+  </tlLogic>
+  <tlLogic id="J3" type="static" programID="coord" offset="135">
+    <phase duration="108" state="GGggrrrrrrrr"/>
+    <phase duration="4" state="yyggrrrrrrrr"/>
+    <phase duration="66" state="rrGGrrrrrrrr"/>
+    <phase duration="2" state="rryyrrrrrrrr"/>
+  </tlLogic>
+</additional>
