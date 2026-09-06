@@ -110,23 +110,24 @@
 学到的策略：路口1 在南北/东西混合相位间 50/50 轮转、完全跳过左转保护相位；
 路口18 东西向占 100%（73% 混合 + 27% 左转保护），南北向需求小仅维持最小绿灯。
 
-训练曲线: `dqn_i1_v2.csv` / `dqn_i18_v2.csv`；旧相位语义消融: `dqn_i*_old_phases.csv`。
+消融证据: `dqn_i1_old_phases.csv` / `dqn_i18_old_phases.csv`（旧相位语义下路口1卡在20s，印证相位对齐的必要性）。
 
-### 通用模型：一个模型通吃全部 20 个路口
+### 统一模型：一个模型通吃 20 单路口 + 3 干线
 
-用 `--sumocfg all` 训练 200 轮（每个路口约 10 轮，轮换训练，reward 尺度按路口
-分别校准），得到单一通用模型 `dqn_generalist.pt`。评估（ε=0，每路口 1 轮）：
+用 `--sumocfg all` 轮换训练（每轮随机切换场景，reward 尺度按路口分别校准），
+最终模型 `dqn_unified.pt`（61 维状态，累计 295 轮）。评估（ε=0）：
 
-| 指标 | 原始固定配时 | 通用 DQN |
+| 指标 | 原始固定配时 | 统一 DQN |
 |------|------------|---------|
-| 20路口平均车均延误 | 19.33s | **4.61s (降76%)** |
+| 20路口平均车均延误 | 19.33s | **4.58s (降76%)** |
 | 单路口改善幅度 | - | 32%~96% 全部为正 |
-| 吞吐量 | 部分路口仅77% | 全部 98.5%~99.2% |
+| 干线改善幅度 | - | 91%~94%（见下节） |
+| 吞吐量 | 部分路口仅77% | 全部 98.5%+ |
 
-亮点：路口19 延误 47.65s→2.03s（降96%）、路口18 79.85s→4.18s（降95%）；
-通用模型在路口1 (4.69s) 和路口18 (4.18s) 上与专用模型 (4.75s/4.05s) 相当，
-即"一个模型部署到所有路口"几乎不损失性能。
-训练曲线: `dqn_generalist_curves.png`；逐轮日志: `dqn_generalist.csv`。
+亮点：路口19 延误 47.65s→2.04s（降96%）、路口18 79.85s→4.17s（降95%）；
+统一模型在单路口与干线上均无专项模型的性能损失，即"一个模型部署到所有场景"。
+训练曲线: `dqn_unified_curves.png`；逐轮日志: `dqn_unified.csv`；
+评估记录: `dqn_eval_unified.csv`（230轮版）/ `dqn_eval_unified_after.csv`（295轮终版）。
 
 ## 干线绿波协同（多路口控制）
 
@@ -184,7 +185,7 @@ DQN，KPI卡片实时显示改善百分比）；一键生成**标准化评估报
 # 1. 采集(同场景同种子各跑一次, 数据直接可比)
 python data_collector.py --sumocfg intersection_1.sumocfg --control fixed --label fixed
 python data_collector.py --sumocfg intersection_1.sumocfg --control dqn \
-    --model dqn_generalist.pt --label dqn
+    --model dqn_unified.pt --label dqn
 
 # 2a. 实时动态仪表盘(浏览器打开 http://127.0.0.1:8080, 演示录屏建议全屏)
 python dashboard_server.py
@@ -193,7 +194,7 @@ python dashboard_server.py
 python visualize_results.py --baseline fixed --proposal dqn
 
 # 训练/评估管线也可挂采集器: 加 --collect-data 即可
-python sumo_pipeline.py --eval --episodes 1 --model dqn_generalist.pt --collect-data
+python sumo_pipeline.py --eval --episodes 1 --model dqn_unified.pt --collect-data
 ```
 
 实测对比（路口1，600s仿真，seed=0，详见 `reports/report.md`）：
@@ -239,16 +240,16 @@ python sumo_pipeline.py --episodes 50 --model dqn_traffic_sumo.pt
 
 # 通用模型: 一个模型吃下全部20个路口(每轮轮换一个路口,
 # reward尺度校准按路口分别维护), 训练/评估通用
-python sumo_pipeline.py --sumocfg all --episodes 200 --model dqn_generalist.pt
+python sumo_pipeline.py --sumocfg all --episodes 230 --model dqn_unified.pt
 
 # 也可以逗号分隔指定部分路口
 python sumo_pipeline.py --sumocfg "intersection_1.sumocfg,intersection_18.sumocfg" --episodes 50
 
 # 评估模式(不训练, 加载已有模型, eps=0); 配合 --sumocfg all 可批量测评全部路口
-python sumo_pipeline.py --eval --episodes 20 --sumocfg all --model dqn_generalist.pt
+python sumo_pipeline.py --eval --episodes 23 --sumocfg all --model dqn_unified.pt
 
 # 训练曲线图(延误+loss, 多路口自动按路口着色)
-python plot_training.py dqn_generalist.csv
+python plot_training.py dqn_unified.csv
 
 # 换路口(只需给 cfg 名, net 会从 sumocfg 里自动读)
 python sumo_pipeline.py --sumocfg intersection_2.sumocfg
@@ -257,9 +258,9 @@ python sumo_pipeline.py --sumocfg intersection_2.sumocfg
 ### 训练曲线可视化
 
 ```bash
-python plot_training.py dqn_i1_v2.csv                 # 单路口: 延误+loss双图
+python plot_training.py dqn_unified.csv --quick        # 单路口日志也可画: 延误+loss双图
 python plot_training.py a.csv b.csv --compare         # 多文件同图对比
-python plot_training.py dqn_generalist.csv            # 多路口: 按路口着色散点
+python plot_training.py dqn_unified.csv                # 多路口: 按路口着色散点
 ```
 
 ### 视频训练
