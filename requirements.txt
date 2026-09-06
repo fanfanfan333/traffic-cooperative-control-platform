@@ -3,6 +3,8 @@ numpy>=1.24
 torch>=2.0            # 视频管线GPU版请另装对应CUDA轮子
 sumolib>=1.18         # 随SUMO发行, 也可用 pip install eclipse-sumo
 matplotlib>=3.7
+flask>=3.0            # 企业级平台后端(platform/app.py)
+psutil>=5.9           # 总览页系统资源监控
 
 # 功能一视频管线(可选, 无视频采集需求可不装)
 # ultralytics>=8.0

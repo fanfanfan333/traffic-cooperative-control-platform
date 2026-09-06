@@ -311,8 +311,10 @@ def get_sumo_binary(gui: bool) -> str:
     return sumo_binary
 
 
-def start_sumo(sumocfg: str, seed: int, gui: bool, tripinfo_path: str = None):
-    """在 sumocfg 所在目录启动 SUMO,这样 cfg 里的相对路径(net/routes/results)都能对上。"""
+def start_sumo(sumocfg: str, seed: int, gui: bool, tripinfo_path: str = None, label: str = None):
+    """在 sumocfg 所在目录启动 SUMO,这样 cfg 里的相对路径(net/routes/results)都能对上。
+    label: TraCI连接标签——平台多线程场景(信号仿真/评估并行)用独立标签隔离连接,
+    不传则使用默认连接(兼容旧行为)。"""
     cfg_dir = os.path.dirname(os.path.abspath(sumocfg))
     os.makedirs(os.path.join(cfg_dir, "results"), exist_ok=True)
     cmd = [get_sumo_binary(gui), "-c", os.path.abspath(sumocfg),
@@ -325,7 +327,10 @@ def start_sumo(sumocfg: str, seed: int, gui: bool, tripinfo_path: str = None):
     old_cwd = os.getcwd()
     os.chdir(cfg_dir)
     try:
-        traci.start(cmd)
+        if label:
+            traci.start(cmd, label=label)
+        else:
+            traci.start(cmd)
     finally:
         os.chdir(old_cwd)
 

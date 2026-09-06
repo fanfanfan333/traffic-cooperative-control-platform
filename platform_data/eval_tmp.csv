@@ -1,0 +1,2 @@
+﻿episode,seed,scenario,decisions,avg_reward,avg_raw_reward,avg_loss,epsilon_end,wall_clock_sec,mean_delay,phase_0_count,phase_1_count,phase_2_count,phase_3_count
+1,0,arterial_干线一（东西向）,51,-0.04663261808034877,-0.04663261808034877,nan,0.05,1.4180352687835693,7.804597701149425,9,0,165,30
