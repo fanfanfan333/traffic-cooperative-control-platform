@@ -29,3 +29,5 @@ _rob_*.csv
 
 # 临时
 *.tmp
+platform_data/
+sumo/arterial/tripinfo_*.xml

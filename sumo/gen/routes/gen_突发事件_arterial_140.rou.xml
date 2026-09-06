@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<routes>
+  <vType id="car" accel="2.6" decel="4.5" sigma="0.5" length="5.0" minGap="2.5" maxSpeed="13.89"/>
+  <route id="r_through" edges="W_in link_0 link_1 link_2 E_out"/>
+  <flow id="f_main" type="car" route="r_through" begin="0" end="3600" vehsPerHour="1120"/>
+</routes>

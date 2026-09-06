@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+    <input>
+        <net-file value="../arterial/干线一（东西向）.net.xml"/>
+        <route-files value="routes/gen_早高峰_arterial_150.rou.xml"/>
+    </input>
+    <time><begin value="0"/><end value="3600"/></time>
+    <processing><time-to-teleport value="-1"/></processing>
+</configuration>
