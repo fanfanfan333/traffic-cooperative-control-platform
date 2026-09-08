@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <configuration>
     <input>
-        <net-file value="../arterial/干线一（东西向）.net.xml"/>
+        <net-file value="../arterial/干线三（混合方向）.net.xml"/>
         <route-files value="routes/gen_突发事件_arterial_140.rou.xml"/>
     </input>
     <time><begin value="0"/><end value="3600"/></time>

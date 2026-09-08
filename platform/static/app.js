@@ -29,7 +29,7 @@ setInterval(() => {
 
 /* ── 页面路由 ── */
 const PAGE_NAME = { overview:"总览仪表盘", network:"路网管理", gis:"GIS地图监控", algorithm:"协同管控算法",
-                    sim:"信号控制仿真", eval:"性能评估", cve:"云边端协同", docs:"接口文档" };
+                    deploy:"模型部署", sim:"信号控制仿真", eval:"性能评估", cve:"云边端协同", docs:"接口文档" };
 const loaders = {};
 document.querySelectorAll(".nav-item").forEach(item => {
   item.onclick = () => {
@@ -117,14 +117,20 @@ async function loadNetwork() {
   $("nw-count").textContent = `${d.intersections.length} 个场景`;
   const kindName = { single: "单路口", arterial: "干线", generated: "扰动生成" };
   d.intersections.forEach(s => {
-    tb.innerHTML += `<tr><td>${s.display}</td><td><span class="badge blue">${kindName[s.kind]}</span></td><td>${s.routes || "-"}</td></tr>`;
+    const pv = s.provenance;
+    const shape = pv ? `${pv.type}${pv.approaches ? ` (${pv.approaches}进口/${pv.phases}相位)` : ""}` : "-";
+    tb.innerHTML += `<tr><td>${s.display}</td><td><span class="badge blue">${kindName[s.kind]}</span></td>
+      <td style="font-size:12px">${shape}</td><td style="font-size:12px">${pv && pv.note ? pv.note : (s.routes || "-")}</td></tr>`;
     genSel.innerHTML += `<option value="${s.name}">${s.display}</option>`;
   });
+  const st = d.statistics || {};
   $("nw-stats").innerHTML = `
     <tr><td>单路口场景</td><td style="text-align:right">${d.intersections.filter(s=>s.kind==="single").length}</td></tr>
     <tr><td>干线场景</td><td style="text-align:right">${d.intersections.filter(s=>s.kind==="arterial").length}</td></tr>
     <tr><td>扰动生成场景</td><td style="text-align:right">${d.intersections.filter(s=>s.kind==="generated").length}</td></tr>
-    <tr><td>受控信号灯</td><td style="text-align:right">${d.intersections.filter(s=>s.kind==="arterial").length*4 + 20 + 8}+</td></tr>
+    <tr><td>异形路口占比</td><td style="text-align:right">${st.total ? `${st.non_standard}/${st.total} (窄路密网特征)` : "-"}</td></tr>
+    <tr><td>数据来源</td><td style="text-align:right;font-size:12px">雄安实测调查数据(团队数据V2)</td></tr>
+    <tr><td>核对方式</td><td style="text-align:right;font-size:12px">高德地图逐路口核对 + 比赛方确认修正</td></tr>
     <tr><td>评估报告</td><td style="text-align:right">reports/ + platform_data/eval</td></tr>`;
 }
 async function genScenario(kind) {
@@ -174,11 +180,14 @@ async function loadGis() {
       const all = await jget("/api/intersections");
       const info = all.intersections.find(x => x.name === sc);
       const ev = await jget("/api/data?run=" + encodeURIComponent("art_dqn")).catch(() => null);
+      const pv = info.provenance || {};
       $("gis-info").innerHTML = `<h3 style="margin-bottom:10px">${info.display}</h3>
         <table class="tb">
         <tr><td>场景文件</td><td>${info.file}</td></tr>
         <tr><td>类型</td><td>${info.kind === "arterial" ? "干线(多信号协同)" : info.kind === "generated" ? "扰动生成场景" : "单路口"}</td></tr>
-        <tr><td>路由数据</td><td>${info.routes || "-"}</td></tr>
+        <tr><td>路口形态</td><td>${pv.type || "-"}${pv.approaches ? ` (${pv.approaches}进口/${pv.phases}相位)` : ""}</td></tr>
+        <tr><td>形态说明</td><td>${pv.note || "-"}</td></tr>
+        <tr><td>数据来源</td><td>${pv.type ? "雄安实测调查数据 · 高德地图核对" : "-"}</td></tr>
         <tr><td>参考延误</td><td>${ev && ev.metrics ? (ev.metrics.arrived ? "已采集" : "-") : "-"}</td></tr></table>
         <div class="foot-note">在「信号控制仿真」页选择该场景启动实时仿真; 在「性能评估」页运行固定配时vs DQN对比。</div>`;
     };
@@ -236,6 +245,58 @@ async function trainStop() {
   const d = await jpost("/api/train/stop"); alert(d.msg);
 }
 loaders.algorithm = loadAlgorithm;
+
+/* ══════════ 4.5 模型部署 ══════════ */
+async function loadDeploy() {
+  const d = await jget("/api/deploy");
+  if (!d.ok || !d.report) {
+    $("dp-params").textContent = "未生成";
+    $("dp-verify").innerHTML = `<tr><td colspan="4">未找到基准报告, 请在项目根目录运行: python export_onnx.py</td></tr>`;
+    $("dp-files").innerHTML = `<tr><td colspan="3">model_deployment/ 目录暂无产物</td></tr>`;
+    return;
+  }
+  const r = d.report, b = r.benchmark;
+  $("dp-params").textContent = fmtInt(b.params);
+  const fp32 = (r.verify || []).find(v => (v.tag || "").includes("FP32")) || {};
+  $("dp-agree").innerHTML = ((fp32.action_agreement || 0) * 100).toFixed(2) + "<span class='u'>%</span>";
+  $("dp-ms").innerHTML = (b.onnx_fp32_cpu ? b.onnx_fp32_cpu.mean_ms * 1000 : 0).toFixed(0) + "<span class='u'>us</span>";
+  $("dp-latency").textContent = b.onnx_fp32_cpu ? (b.onnx_fp32_cpu.mean_ms * 1000).toFixed(0) + "us" : "-";
+  const ratio = b.size_pt_mb && b.size_onnx_fp32_mb ? (b.size_onnx_fp32_mb / b.size_pt_mb) : 0;
+  $("dp-size").innerHTML = ratio ? (ratio * 100).toFixed(0) + "<span class='u'>%</span>" : "-";
+  // 精度一致性表
+  const verdict = a => a >= 0.9999 ? '<span class="st run">可直接部署</span>'
+    : a >= 0.995 ? '<span class="st run">推荐(体积更小)</span>' : '<span class="st stop">极端场景备用</span>';
+  $("dp-verify").innerHTML = (r.verify || []).map(v =>
+    `<tr><td>${v.tag}</td><td>${v.max_abs_diff.toExponential(2)}</td><td>${(v.action_agreement * 100).toFixed(2)}%</td><td>${verdict(v.action_agreement)}</td></tr>`).join("");
+  // 体积/延迟双轴对比图
+  const names = ["PyTorch .pt", "ONNX FP32", "ONNX FP16", "ONNX INT8"];
+  const sizes = [b.size_pt_mb * 1024, b.size_onnx_fp32_mb * 1024,
+    (b.size_onnx_fp16_mb || 0) * 1024, (b.size_onnx_int8_mb || 0) * 1024];
+  const lat = [b.pytorch_cpu ? b.pytorch_cpu.mean_ms * 1000 : 0,
+    b.onnx_fp32_cpu ? b.onnx_fp32_cpu.mean_ms * 1000 : 0,
+    b.onnx_fp16_cpu ? b.onnx_fp16_cpu.mean_ms * 1000 : 0,
+    b.onnx_int8_cpu ? b.onnx_int8_cpu.mean_ms * 1000 : 0];
+  chart("dp-bench").setOption({
+    backgroundColor: "transparent", tooltip: { trigger: "axis" },
+    legend: { top: 0, textStyle: { fontSize: 10, color: "#7b879c" } },
+    grid: { left: 54, right: 54, top: 30, bottom: 24 },
+    xAxis: { type: "category", data: names, axisLabel: { fontSize: 10 } },
+    yAxis: [{ type: "value", name: "KB" }, { type: "value", name: "us/次", position: "right" }],
+    series: [
+      { name: "模型体积", type: "bar", data: sizes, barWidth: 26,
+        itemStyle: { color: "#2563eb", borderRadius: [4, 4, 0, 0] } },
+      { name: "单次推理延迟", type: "line", yAxisIndex: 1, data: lat, smooth: true,
+        lineStyle: { color: "#d97706", width: 2 }, itemStyle: { color: "#d97706" } }],
+  });
+  // 模型文件清单
+  const purpose = f => f.includes("int8") ? "INT8动态量化 · 极致压缩(极端场景备用)"
+    : f.includes("fp16") ? "FP16半精度 · 边缘芯片(NPU)部署"
+    : f.endsWith(".data") ? "FP32权重数据 (torch导出器外部数据格式)"
+    : "ONNX FP32 · 默认边缘部署格式 (动作一致率100%)";
+  $("dp-files").innerHTML = d.models.map(m =>
+    `<tr><td style="font-family:Consolas,monospace">${m.file}</td><td>${m.size_kb} KB</td><td>${purpose(m.file)}</td></tr>`).join("");
+}
+loaders.deploy = loadDeploy;
 
 /* ══════════ 5 信号控制仿真 ══════════ */
 const simCharts = {};

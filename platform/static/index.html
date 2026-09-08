@@ -32,6 +32,9 @@
       <div class="nav-item" data-page="algorithm">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 6l-5 6 5 6M16 6l5 6-5 6M13 4l-2 16"/></svg>
         <span class="nav-text">协同管控算法</span></div>
+      <div class="nav-item" data-page="deploy">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 8v10l-9 4-9-4V8"/><path d="M3.3 7.6L12 3l8.7 4.6L12 12 3.3 7.6z"/><path d="M12 12v10"/></svg>
+        <span class="nav-text">模型部署</span></div>
       <div class="nav-item" data-page="sim">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>
         <span class="nav-text">信号控制仿真</span></div>
@@ -46,7 +49,7 @@
         <span class="nav-text">接口文档</span></div>
     </nav>
     <div class="sidebar-foot">
-      <span>Flask 3.x</span><span>ECharts 5</span><span>DQN</span><span>SUMO</span><span>TraCI</span>
+      <span>Flask 3.x</span><span>ECharts 5</span><span>DQN</span><span>SUMO</span><span>TraCI</span><span>ONNX</span>
     </div>
   </aside>
 
@@ -116,8 +119,8 @@
           </div>
         </div>
         <div class="grid g2">
-          <div class="card"><div class="head"><h3>场景清单</h3><span class="d" id="nw-count"></span></div>
-            <table class="tb"><thead><tr><th>场景</th><th>类型</th><th>路由文件</th></tr></thead>
+          <div class="card"><div class="head"><h3>场景清单 <span class="d">雄安实测数据溯源</span></h3><span class="d" id="nw-count"></span></div>
+            <table class="tb"><thead><tr><th>场景</th><th>类型</th><th>路口形态</th><th>说明</th></tr></thead>
             <tbody id="nw-table"></tbody></table></div>
           <div class="card"><div class="head"><h3>平台数据统计</h3></div>
             <table class="tb"><tbody id="nw-stats"></tbody></table>
@@ -165,6 +168,39 @@
           <div class="card"><div class="head"><h3>训练奖励曲线</h3></div><div id="al-reward" class="chart"></div></div>
           <div class="card"><div class="head"><h3>训练Loss曲线 <span class="d">对数轴</span></h3></div><div id="al-loss" class="chart"></div></div>
         </div>
+      </div>
+
+      <!-- ═══ 4.5 模型部署 (赛道C · AI模型轻量化部署验证) ═══ -->
+      <div class="page" id="pg-deploy">
+        <div class="layers" style="margin-bottom:14px">
+          <div class="layer l-cloud"><h4>云 · 训练与转换</h4>
+            <div class="big">PyTorch</div>
+            <ul><li>Dueling DDQN 训练/断点续训</li><li>torch.onnx.export 动态batch导出</li><li>FP16半精度 / INT8动态量化</li></ul></div>
+          <div class="arrow">→</div>
+          <div class="layer l-edge"><h4>边 · 边缘推理</h4>
+            <div class="big" id="dp-latency">-</div>
+            <ul><li>ONNX Runtime CPU (RSU模拟)</li><li>sumo_pipeline --runtime onnx</li><li>决策周期 10~60s, 延迟预算充足</li></ul></div>
+          <div class="arrow">→</div>
+          <div class="layer l-end"><h4>端 · 感知输入</h4>
+            <div class="big">YOLOv8n</div>
+            <ul><li>轻量化目标检测 (3.2M参数)</li><li>DeepSORT 多目标追踪</li><li>视频管线状态构建输入</li></ul></div>
+        </div>
+        <div class="grid g4">
+          <div class="kpi kc-blue"><div class="k">模型参数量</div><div class="v" id="dp-params">-</div><div class="s">61维状态 → 4个信号相位</div></div>
+          <div class="kpi kc-green"><div class="k">FP32动作一致率</div><div class="v" id="dp-agree">-</div><div class="s">vs PyTorch (1.5万状态)</div></div>
+          <div class="kpi kc-cyan"><div class="k">ONNX推理延迟</div><div class="v" id="dp-ms">-</div><div class="s">单样本CPU · 较PyTorch加速6倍</div></div>
+          <div class="kpi kc-violet"><div class="k">体积压缩</div><div class="v" id="dp-size">-</div><div class="s">.pt → ONNX-FP32</div></div>
+        </div>
+        <div class="grid g2">
+          <div class="card"><div class="head"><h3>精度一致性验证 <span class="d">1.5万个覆盖[0,1]取值域的测试状态</span></h3></div>
+            <table class="tb"><thead><tr><th>对比</th><th>最大Q值绝对误差</th><th>动作一致率</th><th>结论</th></tr></thead>
+            <tbody id="dp-verify"></tbody></table>
+            <div class="foot-note">部署一致性回归: 同场景同种子 600s 仿真, PyTorch 与 ONNX 车均延误 4.82s / 4.82s, 相位决策序列逐一致。</div></div>
+          <div class="card"><div class="head"><h3>体积与推理延迟对比</h3></div><div id="dp-bench" class="chart"></div></div>
+        </div>
+        <div class="card"><div class="head"><h3>部署模型清单 <span class="d">model_deployment/ 目录 · 由 export_onnx.py 生成</span></h3></div>
+          <table class="tb"><thead><tr><th>文件</th><th>体积</th><th>用途</th></tr></thead>
+          <tbody id="dp-files"></tbody></table></div>
       </div>
 
       <!-- ═══ 5 信号控制仿真 ═══ -->
@@ -272,6 +308,7 @@
             <tr><td>实验数据详实性 (5分)</td><td>多场景多参数详实数据</td><td class="map-ok">✔ 23场景评估记录 + 采集明细 + 训练曲线, 报告自动生成</td></tr>
             <tr><td>演示效果 (10分)</td><td>关键指标实时叠加显示</td><td class="map-ok">✔ 信号控制仿真页: 相位灯色实时叠加; 总览/曲线页实时刷新</td></tr>
             <tr><td>工程化潜力 (5分)</td><td>模块解耦, 接口清晰, 部署约束</td><td class="map-ok">✔ 前后端分离REST架构 + Dockerfile + requirements(含CPU可运行说明)</td></tr>
+            <tr><td>赛道C · AI模型轻量化部署验证</td><td>数据处理/训练/模型转换/模型部署全流程</td><td class="map-ok">✔ 模型部署页: ONNX导出(FP32/FP16/INT8) + 1.5万状态精度一致性验证 + 边缘推理基准 + 部署链路</td></tr>
             <tr><td>标准化价值 (5分)</td><td>接口规范/评估体系标准化前景</td><td class="map-ok">✔ 本页REST接口规范 + 标准化六维评估指标集 + 可复现实验协议</td></tr>
           </tbody></table></div>
       </div>

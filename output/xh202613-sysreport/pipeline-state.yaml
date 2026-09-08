@@ -1,0 +1,36 @@
+request_id: xh202613-sysreport
+entry_type: full_pipeline
+chain: [S1, S2, S3]
+intent_len: 约30字
+user_goal: 生成Word版《系统设计与算法报告》(挑战杯XH-202613赛道C参赛作品材料)
+output_docx_path: C:\Users\86187\Desktop\files\output\xh202613-sysreport\stage3\系统设计与算法报告.docx
+output_docx_user_specified: false
+current_stage: S3
+updated_at: 2026-09-08 17:10
+stage_1:
+  status: completed
+  agent: doc-writer
+  completed_at: 2026-09-08 16:55
+  output_path: stage1/final_draft.md
+  genre: general
+  expert_used: general-writer
+  route_tag: general_writing
+  critic_decision: null
+  fallback: false
+stage_2:
+  status: completed
+  agent: doc-formatter
+  completed_at: 2026-09-08 17:10
+  route: html
+  html_sub: template
+  genre: business-report
+  output_path: stage2/formatted-系统设计与算法报告.html
+  output_format: html
+  skills_invoked: [design-token, doc-typeset, html-review]
+  template_used: business-report
+  design_tokens_path: stage2/design_tokens.json
+  html_review_attempts: 1
+  fallback: false
+stage_3:
+  status: in_progress
+  agent: doc-converter

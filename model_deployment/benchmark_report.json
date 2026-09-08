@@ -1,0 +1,57 @@
+{
+  "source_model": "dqn_unified.pt",
+  "state_dim": 61,
+  "action_dim": 4,
+  "hidden_dims": [
+    128,
+    64
+  ],
+  "verify": [
+    {
+      "tag": "PyTorch vs ONNX-FP32",
+      "max_abs_diff": 1.9073486328125e-05,
+      "action_agreement": 1.0,
+      "n_states": 15000
+    },
+    {
+      "tag": "PyTorch vs ONNX-FP16",
+      "max_abs_diff": 0.32238006591796875,
+      "action_agreement": 0.9987333333333334,
+      "n_states": 15000
+    },
+    {
+      "tag": "PyTorch vs ONNX-INT8",
+      "max_abs_diff": 1.6666374206542969,
+      "action_agreement": 0.9861333333333333,
+      "n_states": 15000
+    }
+  ],
+  "benchmark": {
+    "params": 16517,
+    "size_pt_mb": 0.208411,
+    "size_onnx_fp32_mb": 0.077591,
+    "pytorch_cpu": {
+      "mean_ms": 0.12818809999953373,
+      "qps": 7801.036133647642,
+      "n_runs": 1000
+    },
+    "onnx_fp32_cpu": {
+      "mean_ms": 0.020303599999351718,
+      "qps": 49252.34933863598,
+      "n_runs": 1000
+    },
+    "size_onnx_fp16_mb": 0.044904,
+    "onnx_fp16_cpu": {
+      "mean_ms": 0.19402700000046025,
+      "qps": 5153.921876839965,
+      "n_runs": 1000
+    },
+    "size_onnx_int8_mb": 0.026909,
+    "onnx_int8_cpu": {
+      "mean_ms": 0.02488589999938995,
+      "qps": 40183.39702500267,
+      "n_runs": 1000
+    }
+  },
+  "generated_at": "2026-09-08 16:04:39"
+}

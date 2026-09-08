@@ -207,6 +207,13 @@ def main():
         ("总油耗 (L)", kb["fuel_liters"], kp["fuel_liters"], True),
         ("人均停车 (次/车)", kb["stop_events_per_veh"], kp["stop_events_per_veh"], True),
     ]
+    # 安全维度(急刹/二次停车), 旧版采集数据无该字段时自动跳过
+    safety_rows = []
+    if kb.get("harsh_brake_per_veh") is not None and kp.get("harsh_brake_per_veh") is not None:
+        safety_rows.append(("车均急刹事件 (次/车)", kb["harsh_brake_per_veh"], kp["harsh_brake_per_veh"], True))
+    if kb.get("second_stop_rate") is not None and kp.get("second_stop_rate") is not None:
+        safety_rows.append(("二次停车率", kb["second_stop_rate"], kp["second_stop_rate"], True))
+    kpis += safety_rows
     plot_kpi(kpis, os.path.join(args.out_dir, "kpi_summary.png"))
     print("[报告] KPI汇总图: kpi_summary.png")
 
@@ -235,6 +242,10 @@ def main():
         pct_line("累计通过车辆 (辆)", kb["arrived"], kp["arrived"], False),
         pct_line("总燃油消耗 (L)", kb["fuel_liters"], kp["fuel_liters"], True),
         pct_line("人均停车次数 (次/车)", kb["stop_events_per_veh"], kp["stop_events_per_veh"], True),
+    ]
+    for name, b, p, lb in safety_rows:
+        lines.append(pct_line(name, b, p, lb, nd=3))
+    lines += [
         "",
         "## 图表索引",
         "",
@@ -252,7 +263,9 @@ def main():
         f"{(kp['arrived']-kb['arrived'])/kb['arrived']*100:+.1f}%, "
         f"油耗变化 {(kp['fuel_liters']-kb['fuel_liters'])/kb['fuel_liters']*100:+.1f}%, "
         f"停车次数变化 {(kp['stop_events_per_veh']-kb['stop_events_per_veh'])/kb['stop_events_per_veh']*100:+.1f}%。",
-        "效率、能耗、舒适性(停车次数)三个维度均纳入评估, 满足标准化测试指标集要求。",
+        ("效率、能耗、舒适性(停车次数)、安全性(急刹/二次停车率)四个维度均纳入评估, "
+         "满足标准化测试指标集要求。" if safety_rows else
+         "效率、能耗、舒适性(停车次数)三个维度均纳入评估, 满足标准化测试指标集要求。"),
         "",
     ]
     report_path = os.path.join(args.out_dir, "report.md")

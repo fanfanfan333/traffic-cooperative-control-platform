@@ -1,0 +1,456 @@
+{
+  "info": {
+    "_postman_id": "xh-202613-platform-api",
+    "name": "XH-202613 车路云一体化协同管控平台 API",
+    "description": "面向雄安新区城市大脑的车路云一体化协同管控算法与仿真平台 REST 接口集合。启动平台: python platform/app.py --port 5000",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://127.0.0.1:5000"
+    }
+  ],
+  "item": [
+    {
+      "name": "总览与日志",
+      "item": [
+        {
+          "name": "GET /api/overview",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/overview",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "overview"
+              ]
+            },
+            "description": "总览KPI/系统资源/训练仿真评估状态/实时趋势"
+          },
+          "response": []
+        },
+        {
+          "name": "GET /api/logs",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/logs",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "logs"
+              ]
+            },
+            "description": "系统操作日志"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "路网与场景",
+      "item": [
+        {
+          "name": "GET /api/intersections",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/intersections",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "intersections"
+              ]
+            },
+            "description": "全部路口与干线场景清单(含雄安实测溯源/生成场景)"
+          },
+          "response": []
+        },
+        {
+          "name": "POST /api/scenario/generate",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/scenario/generate",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "scenario",
+                "generate"
+              ]
+            },
+            "description": "扰动场景生成(早高峰/平峰/突发事件/随机)",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"base\": \"intersection_1\",\n  \"kind\": \"早高峰\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "算法训练",
+      "item": [
+        {
+          "name": "POST /api/train/start",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/train/start",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "train",
+                "start"
+              ]
+            },
+            "description": "启动DQN训练",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"episodes\": 10,\n  \"model\": \"dqn_unified.pt\",\n  \"scenario\": \"all\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "POST /api/train/stop",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/train/stop",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "train",
+                "stop"
+              ]
+            },
+            "description": "停止训练"
+          },
+          "response": []
+        },
+        {
+          "name": "GET /api/train/status",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/train/status",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "train",
+                "status"
+              ]
+            },
+            "description": "训练状态/日志尾部/最新回合指标"
+          },
+          "response": []
+        },
+        {
+          "name": "GET /api/train/history",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/train/history",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "train",
+                "history"
+              ]
+            },
+            "description": "训练历史曲线数据"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "信号仿真",
+      "item": [
+        {
+          "name": "POST /api/sim/start",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/sim/start",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "sim",
+                "start"
+              ]
+            },
+            "description": "启动信号实时仿真",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"scenario\": \"intersection_1\",\n  \"policy\": \"dqn\",\n  \"seconds\": 600\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "POST /api/sim/stop",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/sim/stop",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "sim",
+                "stop"
+              ]
+            },
+            "description": "停止仿真"
+          },
+          "response": []
+        },
+        {
+          "name": "GET /api/sim/state",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/sim/state",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "sim",
+                "state"
+              ]
+            },
+            "description": "仿真实时状态(相位/指标/曲线)"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "性能评估",
+      "item": [
+        {
+          "name": "POST /api/eval/run",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/eval/run",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "eval",
+                "run"
+              ]
+            },
+            "description": "启动性能评估(固定配时vs DQN)",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"scenario\": \"intersection_1\",\n  \"seconds\": 900,\n  \"seed\": 0\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "GET /api/eval/status",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/eval/status",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "eval",
+                "status"
+              ]
+            },
+            "description": "评估进度与六维雷达结果"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "云边端与部署",
+      "item": [
+        {
+          "name": "GET /api/edge",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/edge",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "edge"
+              ]
+            },
+            "description": "云边端三层实时统计"
+          },
+          "response": []
+        },
+        {
+          "name": "GET /api/deploy",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/deploy",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "deploy"
+              ]
+            },
+            "description": "模型转换与轻量化部署基准(ONNX/FP16/INT8/精度一致性)"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "采集数据",
+      "item": [
+        {
+          "name": "GET /api/runs",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/runs",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "runs"
+              ]
+            },
+            "description": "采集数据运行清单"
+          },
+          "response": []
+        },
+        {
+          "name": "GET /api/data?run=dqn",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/data",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "data"
+              ],
+              "query": [
+                {
+                  "key": "run",
+                  "value": "dqn"
+                }
+              ]
+            },
+            "description": "采集数据明细(降采样)"
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}

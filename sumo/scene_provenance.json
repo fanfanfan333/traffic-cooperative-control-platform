@@ -1,0 +1,48 @@
+{
+  "source": {
+    "dataset": "团队数据V2 (7-26)",
+    "description": "雄安新区典型片区实测交通调查数据, 含路口几何形态、信号配时与分转向流量",
+    "tables": [
+      "03_路口基础信息表_V2.xlsx (20路口几何形态/相位结构/人工核对记录)",
+      "01_统一交通流数据_V2.csv (480条, 早高峰/平峰/晚高峰15分钟分转向流量)",
+      "02_统一信号配时数据_V2.csv (163条, 三时段相位/周期/全红配时)",
+      "05_数据质量报告_V2.xlsx (缺失/重复/异常审计)",
+      "06_数据修正记录_V2.xlsx (按比赛方确认意见与高德地图核对修正)"
+    ],
+    "verification": "全部20路口经高德地图逐路口人工核对(地图与数据一致性=是), 路口13/16/12等经比赛方老师确认修正",
+    "builder": "build_sumo_model.py: 按实测几何形态参数化生成SUMO路网(标准十字/T字/五进口/斜交), 信号方案与流量按三时段实测数据注入",
+    "corridor": "3条干线走廊按片区连续路口串接, 与出题单位提供的容东片区公开规划资料对照"
+  },
+  "statistics": {
+    "total": 20,
+    "non_standard": 13,
+    "note": "13/20为异形路口(T字/三进口/五进口/斜交十字/两相位), 体现窄路密网片区高密度异形路口特征"
+  },
+  "intersections": [
+    {"id": 1,  "scene": "intersection_1",  "type": "标准十字",       "approaches": 4, "phases": 4, "orientation": "无",                  "note": "标准四相位"},
+    {"id": 2,  "scene": "intersection_2",  "type": "T字路口",        "approaches": 3, "phases": 2, "orientation": "东进口不存在",         "note": "全红为0"},
+    {"id": 3,  "scene": "intersection_3",  "type": "四进口两相位",    "approaches": 4, "phases": 2, "orientation": "东北-西南/北-南",       "note": "左直一起放"},
+    {"id": 4,  "scene": "intersection_4",  "type": "标准十字",       "approaches": 4, "phases": 4, "orientation": "东北-西南/北-南",       "note": "标准四相位(道路整体旋转)"},
+    {"id": 5,  "scene": "intersection_5",  "type": "T字路口",        "approaches": 3, "phases": 2, "orientation": "北进口不存在",         "note": "三进口两相位"},
+    {"id": 6,  "scene": "intersection_6",  "type": "标准十字",       "approaches": 4, "phases": 3, "orientation": "无",                  "note": "流量较大"},
+    {"id": 7,  "scene": "intersection_7",  "type": "三进口路口",      "approaches": 3, "phases": 2, "orientation": "北进口不存在",         "note": "朝向特殊(西北-东南/东北直线)"},
+    {"id": 8,  "scene": "intersection_8",  "type": "标准十字",       "approaches": 4, "phases": 4, "orientation": "无",                  "note": "标准四相位"},
+    {"id": 9,  "scene": "intersection_9",  "type": "五进口异形路口",  "approaches": 5, "phases": 3, "orientation": "东北进口",            "note": "异形路口"},
+    {"id": 10, "scene": "intersection_10", "type": "三进口两相位",    "approaches": 3, "phases": 2, "orientation": "东北-西-南",          "note": "东西直行+东南左转两相位"},
+    {"id": 11, "scene": "intersection_11", "type": "标准十字",       "approaches": 4, "phases": 4, "orientation": "无",                  "note": "标准四相位"},
+    {"id": 12, "scene": "intersection_12", "type": "标准十字",       "approaches": 4, "phases": 4, "orientation": "无",                  "note": "标准四相位(配时按比赛方回复修正)"},
+    {"id": 13, "scene": "intersection_13", "type": "T字路口(三进口)", "approaches": 3, "phases": 3, "orientation": "南进口不存在",         "note": "早晚高峰3相位/平峰2相位, 按比赛方确认修正左转流量"},
+    {"id": 14, "scene": "intersection_14", "type": "T字路口(三进口)", "approaches": 3, "phases": 2, "orientation": "西进口不存在",         "note": "东北放行+南放行两相位"},
+    {"id": 15, "scene": "intersection_15", "type": "近似标准十字",    "approaches": 4, "phases": 2, "orientation": "无",                  "note": "南北直左+东西直左两相位"},
+    {"id": 16, "scene": "intersection_16", "type": "标准十字",       "approaches": 4, "phases": 2, "orientation": "无",                  "note": "东西直左+南北直左(流量笔误修正)"},
+    {"id": 17, "scene": "intersection_17", "type": "T字路口(三进口)", "approaches": 3, "phases": 2, "orientation": "西进口不存在",         "note": "东/北/南三进口"},
+    {"id": 18, "scene": "intersection_18", "type": "斜交十字",       "approaches": 4, "phases": 2, "orientation": "西南/东南/西北/东北",  "note": "斜交路口对角放行"},
+    {"id": 19, "scene": "intersection_19", "type": "斜交十字",       "approaches": 4, "phases": 2, "orientation": "西南/东南/西北/东北",  "note": "斜交路口对角放行"},
+    {"id": 20, "scene": "intersection_20", "type": "标准十字",       "approaches": 4, "phases": 4, "orientation": "无",                  "note": "四相位, 左转单独控制"}
+  ],
+  "arterials": [
+    {"scene": "arterial_干线一（东西向）", "name": "干线一(东西向)", "intersections": 4, "note": "片区东西向主干走廊, 4信号联动"},
+    {"scene": "arterial_干线二（南北向）", "name": "干线二(南北向)", "intersections": 5, "note": "片区南北向主干走廊, 5信号联动"},
+    {"scene": "arterial_干线三（混合方向）", "name": "干线三(混合方向)", "intersections": 2, "note": "混合方向联络走廊, 2信号联动"}
+  ]
+}

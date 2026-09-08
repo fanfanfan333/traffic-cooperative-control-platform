@@ -35,6 +35,9 @@ from sumo_state_builder import SumoStateBuilder  # noqa: E402
 
 STOP_SPEED = 0.5          # m/s, 低于此视为停车中
 STOP_MIN_SEC = 5          # 连续停车达到该时长才记一次"停车事件"(过滤换道蠕行)
+HARD_BRAKE_DECEL = 5.0    # m/s², 减速度超过该值记一次急刹事件(安全指标)。
+                          # SUMO车辆常规减速上限4.5, 超过5.0意味着进入非常规制动区间
+BRAKE_COOLDOWN_SEC = 3    # 同一车辆急刹事件最小间隔(避免一次制动过程重复计数)
 DIRS = ("东", "南", "西", "北")
 # TraCI getFuelConsumption 的返回值文档写的是ml/s, 实测是mg/s:
 # 巡航(13.89m/s)返回~667, 除以燃油密度745(mg/ml)得0.9ml/s, 折合6.5L/100km,
@@ -122,6 +125,9 @@ class SimulationDataCollector:
         self._veh_lowsec = {}     # vid -> 已连续低速秒数
         self.stop_events = 0
         self.stop_seconds = 0
+        self._veh_stops = {}      # vid -> 停车次数, 用于二次停车率(安全替代指标)
+        self.brake_events = 0     # 急刹事件总数(减速度>4.5m/s², 安全指标)
+        self._veh_brake_cool = {} # vid -> 距下次可再记急刹的剩余秒数
         self._finished_veh = 0
 
     # ────────────────── 文件与元数据 ──────────────────
@@ -131,7 +137,7 @@ class SimulationDataCollector:
         self._w_metrics = csv.writer(self._f_metrics)
         self._w_metrics.writerow(["time", "running", "arrived_cum", "inserted_cum",
                                   "mean_speed_mps", "mean_wait_s", "halting",
-                                  "fuel_ml_cum", "stop_events", "max_queue"])
+                                  "fuel_ml_cum", "stop_events", "brake_events", "max_queue"])
         self._f_queues = open(p("queues.csv"), "w", newline="", encoding="utf-8")
         self._w_queues = csv.writer(self._f_queues)
         self._w_queues.writerow(["time", "tls_id", "direction", "queue_len", "veh_count"])
@@ -148,7 +154,7 @@ class SimulationDataCollector:
             "label": self.label, "mode": self.control_mode, "scenario": self.scenario,
             "time": t, "running": row[1], "arrived_cum": row[2],
             "mean_speed_mps": row[4], "mean_wait_s": row[5],
-            "fuel_ml_cum": row[7], "stop_events": row[8],
+            "fuel_ml_cum": row[7], "stop_events": row[8], "brake_events": row[9],
             "queues": {tls: {d: queues.get((tls, d), 0) for d in DIRS}
                        for tls in self.tls_ids},
             "phases": {tls: {"phase": ph, "state": st} for tls, ph, st in phases},
@@ -182,9 +188,11 @@ class SimulationDataCollector:
             if low >= STOP_MIN_SEC:
                 self.stop_events += 1
                 self.stop_seconds += low
+                self._veh_stops[vid] = self._veh_stops.get(vid, 0) + 1
         self._veh_lowsec.clear()
         for f in (self._f_metrics, self._f_queues, self._f_phases, self._f_traj):
             f.close()
+        second_stop_n = sum(1 for v in self._veh_stops.values() if v >= 2)
         meta = {
             "label": self.label, "control_mode": self.control_mode,
             "scenario": self.scenario, "seed": self.seed,
@@ -200,6 +208,9 @@ class SimulationDataCollector:
                 "stop_events": self.stop_events,
                 "stop_seconds_total": self.stop_seconds,
                 "stop_events_per_veh": round(self.stop_events / max(self._finished_veh, 1), 3),
+                "harsh_brake_events": self.brake_events,
+                "harsh_brake_per_veh": round(self.brake_events / max(self._finished_veh, 1), 3),
+                "second_stop_rate": round(second_stop_n / max(self._finished_veh, 1), 3),
             },
         }
         with open(os.path.join(self.out_dir, "run_meta.json"), "w", encoding="utf-8") as f:
@@ -252,6 +263,13 @@ class SimulationDataCollector:
                 x, y = self.traci.vehicle.getPosition(vid)
                 self._w_traj.writerow([f"{t:.0f}", vid, f"{x:.1f}", f"{y:.1f}",
                                        f"{speed:.2f}", f"{fuel:.3f}"])
+            # 急刹事件: 采样点瞬时减速度超阈值记一次, 冷却期内不重复计数
+            acc = self.traci.vehicle.getAcceleration(vid)
+            cool = self._veh_brake_cool.get(vid, 0.0) - interval
+            if acc <= -HARD_BRAKE_DECEL and cool <= 0:
+                self.brake_events += 1
+                cool = BRAKE_COOLDOWN_SEC
+            self._veh_brake_cool[vid] = max(cool, 0.0)
             # 停车事件: 连续低速计时, 恢复行驶或离网时结算
             if speed < STOP_SPEED:
                 self._veh_lowsec[vid] = self._veh_lowsec.get(vid, 0) + interval
@@ -260,13 +278,16 @@ class SimulationDataCollector:
                 if low >= STOP_MIN_SEC:
                     self.stop_events += 1
                     self.stop_seconds += low
+                    self._veh_stops[vid] = self._veh_stops.get(vid, 0) + 1
             self._veh_speed[vid] = speed
         for vid in list(self._veh_lowsec.keys() - cur_ids):
             low = self._veh_lowsec.pop(vid, 0)
             if low >= STOP_MIN_SEC:
                 self.stop_events += 1
                 self.stop_seconds += low
+                self._veh_stops[vid] = self._veh_stops.get(vid, 0) + 1
             self._veh_speed.pop(vid, None)
+            self._veh_brake_cool.pop(vid, None)
         self._finished_veh = self._arrived_cum
         self._fuel_ml_cum += fuel_ml
 
@@ -292,7 +313,7 @@ class SimulationDataCollector:
         mean_wait = wait_sum / len(vid_list) if vid_list else 0.0
         row = (f"{t:.0f}", len(vid_list), self._arrived_cum, self._inserted_cum,
                f"{mean_speed:.3f}", f"{mean_wait:.2f}", halting_sum,
-               f"{self._fuel_ml_cum:.0f}", self.stop_events, max_queue)
+               f"{self._fuel_ml_cum:.0f}", self.stop_events, self.brake_events, max_queue)
         self._w_metrics.writerow(row)
 
         self._speed_sum += mean_speed

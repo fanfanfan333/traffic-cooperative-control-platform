@@ -124,6 +124,10 @@ def parse_args():
                    help="信号灯ID, 默认None=自动接管路网内全部信号灯(单路口仅1个,"
                         "干线4~5个全部协同)。单路口旧用法--tls-id J仍兼容")
     p.add_argument("--model", default="dqn_traffic_sumo.pt", help="DQN模型保存/加载路径(.pt)")
+    p.add_argument("--runtime", default="pytorch", choices=["pytorch", "onnx"],
+                   help="推理运行时: pytorch(训练/评估) 或 onnx(边缘部署形态, 仅评估)")
+    p.add_argument("--onnx-model", default=None,
+                   help="ONNX模型路径, 默认 model_deployment/<model名>.onnx")
     p.add_argument("--eval", action="store_true", help="评估模式(不训练, epsilon=0)")
     p.add_argument("--min-green", default=10, type=int, help="最小绿灯秒数,同时是一次决策保持的绿灯时长")
     p.add_argument("--max-green", default=60, type=int, help="最大绿灯秒数")
@@ -521,36 +525,46 @@ def main():
             raise ValueError(
                 f"多场景训练要求状态维度一致: {sumocfg} 为 {dim} 维, 此前场景为 {state_dim} 维")
 
-    agent = TrafficDQNAgent(
-        state_dim=state_dim,
-        action_dim=len(PHASE_NAMES),
-        epsilon=0.0 if args.eval else 1.0,
-        min_replay_size=args.min_replay_size,
-        epsilon_decay=args.epsilon_decay,
-        lr=args.lr,
-        gamma=args.gamma,
-        target_update_freq=args.target_update_freq,
-        target_tau=args.target_update_tau,
-        batch_size=args.batch_size,
-        n_step=args.n_step,
-        lr_warmup_steps=args.lr_warmup,
-        lr_total_steps=args.lr_total_steps,
-        lr_min_scale=args.lr_min_scale,
-        use_huber=(args.loss == "huber"),
-    )
-    if os.path.exists(args.model) and not args.model.lower().endswith(".json"):
-        try:
-            agent.load(args.model)
-            print(f"[SUMO Pipeline] 已加载已有模型 {args.model}")
-            if not args.eval:
-                saved_eps = load_epsilon(args.model)
-                if saved_eps is not None:
-                    agent.epsilon = saved_eps
-                    print(f"[SUMO Pipeline] 已恢复上次训练的 epsilon={saved_eps:.4f}(继续探索衰减,而非重新从1.0开始)")
-                else:
-                    print(f"[SUMO Pipeline] 未找到历史 epsilon 记录,本次从 epsilon={agent.epsilon:.4f} 开始")
-        except Exception as exc:
-            print(f"[SUMO Pipeline] 跳过旧模型 {args.model}: {exc}")
+    use_onnx = args.runtime == "onnx"
+    if use_onnx:
+        # ONNX 部署形态仅支持评估推理; 若误带训练意图, 自动转为评估并提示
+        from onnx_policy import OnnxPolicyAgent, resolve_onnx_path
+        onnx_path = resolve_onnx_path(args.model, args.onnx_model)
+        agent = OnnxPolicyAgent(onnx_path, state_dim=state_dim)
+        if train_mode:
+            train_mode = False
+            print("[SUMO Pipeline] ONNX 运行时仅支持评估推理, 已自动转为评估模式")
+    else:
+        agent = TrafficDQNAgent(
+            state_dim=state_dim,
+            action_dim=len(PHASE_NAMES),
+            epsilon=0.0 if args.eval else 1.0,
+            min_replay_size=args.min_replay_size,
+            epsilon_decay=args.epsilon_decay,
+            lr=args.lr,
+            gamma=args.gamma,
+            target_update_freq=args.target_update_freq,
+            target_tau=args.target_update_tau,
+            batch_size=args.batch_size,
+            n_step=args.n_step,
+            lr_warmup_steps=args.lr_warmup,
+            lr_total_steps=args.lr_total_steps,
+            lr_min_scale=args.lr_min_scale,
+            use_huber=(args.loss == "huber"),
+        )
+        if os.path.exists(args.model) and not args.model.lower().endswith(".json"):
+            try:
+                agent.load(args.model)
+                print(f"[SUMO Pipeline] 已加载已有模型 {args.model}")
+                if not args.eval:
+                    saved_eps = load_epsilon(args.model)
+                    if saved_eps is not None:
+                        agent.epsilon = saved_eps
+                        print(f"[SUMO Pipeline] 已恢复上次训练的 epsilon={saved_eps:.4f}(继续探索衰减,而非重新从1.0开始)")
+                    else:
+                        print(f"[SUMO Pipeline] 未找到历史 epsilon 记录,本次从 epsilon={agent.epsilon:.4f} 开始")
+            except Exception as exc:
+                print(f"[SUMO Pipeline] 跳过旧模型 {args.model}: {exc}")
 
     print(f"[SUMO Pipeline] 开始{'训练' if train_mode else '评估'},共 {args.episodes} 轮,"
           f"每轮最长 {args.max_sim_time:.0f} 仿真秒, state_dim={state_dim}, "
@@ -613,10 +627,14 @@ def main():
                             sumocfg=sumocfg, net=net,
                             calib_wait_scale=calib_w, calib_delta_scale=calib_d)
 
+        import math
+        loss_val = stats['avg_loss']
+        loss_str = (f"{loss_val:.4f}" if not (isinstance(loss_val, float) and math.isnan(loss_val))
+                    else "N/A(评估模式不训练)")
         print(f"[ep{ep} 汇总][{tag}] 决策步数={stats['decisions']} "
               f"车均延误={stats['mean_delay']:.2f}s "
               f"平均reward={stats['avg_reward']:+.3f} "
-              f"平均loss={stats['avg_loss']:.4f} "
+              f"平均loss={loss_str} "
               f"epsilon结束={stats['epsilon_end']:.4f} "
               f"lr结束={agent.current_lr:.2e} "
               f"耗时={stats['wall_clock_sec']:.1f}s")

@@ -10,6 +10,7 @@
   信号仿真    /api/sim/*             系统集成(边端TraCI实时线程, 固定/DQN可切)
   性能评估    /api/eval/*            评估体系(固定配时vs DQN, tripinfo六维雷达)
   云边端协同  /api/edge              端-边-云三层架构可视化
+  模型部署    /api/deploy            赛道C: ONNX转换/FP16/INT8量化/精度一致性基准
   接口文档    /api/docs              接口规范(标准化价值)
 启动: python platform/app.py --port 5000
 """
@@ -623,8 +624,27 @@ def api_overview():
     })
 
 
+PROV_CACHE = None
+
+
+def load_provenance():
+    """场景溯源元数据: 雄安实测数据 → 仿真场景的映射 (sumo/scene_provenance.json)"""
+    global PROV_CACHE
+    if PROV_CACHE is None:
+        PROV_CACHE = {"intersections": {}, "arterials": {}, "source": {}, "statistics": {}}
+        p = os.path.join(ROOT, "sumo", "scene_provenance.json")
+        if os.path.isfile(p):
+            raw = json.load(open(p, encoding="utf-8"))
+            PROV_CACHE["intersections"] = {x["scene"]: x for x in raw.get("intersections", [])}
+            PROV_CACHE["arterials"] = {x["scene"]: x for x in raw.get("arterials", [])}
+            PROV_CACHE["source"] = raw.get("source", {})
+            PROV_CACHE["statistics"] = raw.get("statistics", {})
+    return PROV_CACHE
+
+
 @app.route("/api/intersections")
 def api_intersections():
+    prov = load_provenance()
     out = []
     for s in list_scenarios():
         cfg = os.path.join(ROOT, "sumo", s["file"])
@@ -636,9 +656,21 @@ def api_intersections():
                 rou = os.path.basename(m.group(1))
         except Exception:
             pass
-        out.append({**s, "cfg_size": os.path.getsize(cfg) if os.path.isfile(cfg) else 0,
-                    "routes": rou})
-    return jsonify({"intersections": out})
+        item = {**s, "cfg_size": os.path.getsize(cfg) if os.path.isfile(cfg) else 0,
+                "routes": rou}
+        # 合并场景溯源信息(雄安实测路口形态)
+        stem = os.path.splitext(os.path.basename(s["name"]))[0]
+        if stem in prov["intersections"]:
+            pv = prov["intersections"][stem]
+            item["provenance"] = {"type": pv["type"], "approaches": pv["approaches"],
+                                  "phases": pv["phases"], "note": pv["note"],
+                                  "orientation": pv.get("orientation", "")}
+        elif stem in prov["arterials"]:
+            pv = prov["arterials"][stem]
+            item["provenance"] = {"type": f"干线走廊({pv['intersections']}信号)", "note": pv["note"]}
+        out.append(item)
+    return jsonify({"intersections": out, "source": prov["source"],
+                    "statistics": prov["statistics"]})
 
 
 @app.route("/api/logs")
@@ -751,6 +783,36 @@ def api_edge():
     })
 
 
+DEPLOY_DIR = os.path.join(ROOT, "model_deployment")
+
+
+@app.route("/api/deploy")
+def api_deploy():
+    """模型转换与轻量化部署: 读取 export_onnx.py 产出的基准报告与模型文件清单"""
+    report = None
+    rp = os.path.join(DEPLOY_DIR, "benchmark_report.json")
+    if os.path.isfile(rp):
+        with open(rp, encoding="utf-8") as f:
+            report = json.load(f)
+    models = []
+    if os.path.isdir(DEPLOY_DIR):
+        for f in sorted(os.listdir(DEPLOY_DIR)):
+            fp = os.path.join(DEPLOY_DIR, f)
+            if os.path.isfile(fp) and f.endswith((".onnx", ".onnx.data")):
+                models.append({"file": f, "size_kb": round(os.path.getsize(fp) / 1024, 2)})
+    return jsonify({
+        "ok": report is not None,
+        "report": report,
+        "models": models,
+        "pipeline": {
+            "cloud": "PyTorch 训练 (dqn_unified.pt, 含优化器状态, 供断点续训)",
+            "convert": "torch.onnx.export 动态batch导出 + FP16半精度 + INT8动态量化 (export_onnx.py)",
+            "edge": "ONNX Runtime CPU 推理 (sumo_pipeline --runtime onnx, 单样本 20us 级)",
+            "end": "YOLOv8n 目标检测 + DeepSORT 追踪 (视频管线, 端侧感知输入)",
+        },
+    })
+
+
 @app.route("/api/runs")
 def api_runs():
     runs = []
@@ -787,6 +849,7 @@ def api_docs():
          "body": {"scenario": "intersection_1", "seconds": 900, "seed": 0}},
         {"method": "GET", "path": "/api/eval/status", "desc": "评估进度与六维雷达结果"},
         {"method": "GET", "path": "/api/edge", "desc": "云边端三层实时统计"},
+        {"method": "GET", "path": "/api/deploy", "desc": "模型转换与轻量化部署基准(ONNX导出/FP16/INT8/精度一致性)"},
         {"method": "GET", "path": "/api/logs", "desc": "系统操作日志"},
         {"method": "GET", "path": "/api/runs", "desc": "采集数据运行清单"},
         {"method": "GET", "path": "/api/data?run=<label>", "desc": "采集数据明细(降采样)"},

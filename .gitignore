@@ -23,6 +23,7 @@ collected_data/
 
 # 历史实验产物(与当前模型无关)
 test_log_*.csv
+episode_log.csv
 episode_log.csv.bak_*
 dqn_eval_smoke*
 _rob_*.csv
@@ -31,3 +32,16 @@ _rob_*.csv
 *.tmp
 platform_data/
 sumo/arterial/tripinfo_*.xml
+
+# WorkBuddy 工具元数据(不入库)
+.workbuddy/
+
+# 浏览器自动化临时文件
+.agent-browser/
+
+# 仿真生成场景的运行结果(可重新采集)
+sumo/gen/results/
+
+# 平台运行时日志/进程文件
+*.log
+platform_data/

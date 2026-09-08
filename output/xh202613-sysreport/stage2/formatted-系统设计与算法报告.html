@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="docx-page-size" content="A4">
+<title>系统设计与算法报告</title>
+<style>
+:root {
+  --ff-heading: 微软雅黑, Microsoft YaHei, PingFang SC;
+  --ff-body: 微软雅黑, Microsoft YaHei, PingFang SC;
+  --ff-code: Consolas, Source Code Pro, monospace;
+  --fs-title: var(--typography-fontSize-coverTitle, 22pt);
+  --fs-h1: var(--typography-fontSize-h1, 20pt);
+  --fs-h2: var(--typography-fontSize-h2, 11pt);
+  --fs-h3: var(--typography-fontSize-h3, 10pt);
+  --fs-body: var(--typography-fontSize-body, 9pt);
+  --fs-small: var(--typography-fontSize-small, 8pt);
+  --fw-bold: 700;
+  --fw-heading: var(--typography-fontWeight-heading, 600);
+  --fw-normal: 400;
+  --lh-body: var(--typography-lineHeight-body, 1.6);
+  --color-primary: var(--color-primary, #1565C0);
+  --color-heading: var(--color-heading, #1A237E);
+  --color-text: var(--color-text, #212121);
+  --color-muted: var(--color-textSecondary, #616161);
+  --color-divider: var(--color-divider, #E0E0E0);
+  --color-bg: #FFFFFF;
+  --color-surface: var(--color-surface, #F5F7FA);
+  --color-success: #2e7d32;
+  --color-danger: #c62828;
+  --color-emphasis: var(--color-danger, #c62828);
+  --color-summary-bg: var(--color-surface, #F5F7FA);
+  --color-summary-border: var(--color-primary, #1565C0);
+  --summary-border-width: 4px;
+  --radius-card: 8px;
+  --shadow-card: 0 2px 8px rgba(0,0,0,0.08);
+  --spacing-paragraph: var(--spacing-paragraph, 0.75em);
+  --spacing-section: var(--spacing-cardPadding, 1.5em);
+  --spacing-block: 1em;
+  --spacing-xs: 4px;
+  --spacing-sm: 6px;
+  --spacing-md: 8px;
+  --spacing-lg: 10px;
+  --spacing-h-gap: 0.6em;
+  --spacing-h2-top: 1.6em;
+  --spacing-h3-top: 1.2em;
+  --spacing-li: 0.3em;
+  --spacing-table-block: 0.8em;
+  --spacing-divider: 2em;
+  --spacing-card-gap: 0.2em;
+  --spacing-indent-list: 1.6em;
+  --fs-cover-category: 14pt;
+  --fs-cover-subtitle: 18pt;
+  --fs-card-value: 18pt;
+  --fs-cover-meta: 10.5pt;
+  --page-content-width: var(--layout-maxContentWidth, 15.6cm);
+}
+@page { @bottom-center { content: counter(page); } }
+@page cover { @bottom-center { content: none; } }
+section[role="cover"] { page: cover; }
+
+body {
+  font-family: var(--ff-body);
+  font-size: var(--fs-body);
+  color: var(--color-text);
+  line-height: var(--lh-body);
+  max-width: var(--page-content-width);
+  margin-left: auto;
+  margin-right: auto;
+}
+h1 { font-family: var(--ff-heading); font-size: var(--fs-h1); font-weight: var(--fw-heading); color: var(--color-heading); line-height: 1.3; }
+h2 { font-family: var(--ff-heading); font-size: var(--fs-h2); font-weight: var(--fw-heading); color: var(--color-heading); margin-top: var(--spacing-h2-top); margin-bottom: var(--spacing-h-gap); }
+h3 { font-family: var(--ff-heading); font-size: var(--fs-h3); font-weight: var(--fw-heading); color: var(--color-heading); margin-top: var(--spacing-h3-top); margin-bottom: var(--spacing-h-gap); }
+p { margin: 0 0 var(--spacing-paragraph) 0; }
+table { border-collapse: collapse; width: 100%; margin: var(--spacing-table-block) 0 var(--spacing-section) 0; font-size: var(--fs-body); }
+th { background: var(--color-surface); color: var(--color-heading); font-weight: var(--fw-heading); padding: var(--spacing-sm) var(--spacing-md); border: 1px solid var(--color-divider); text-align: left; }
+td { padding: var(--spacing-sm) var(--spacing-md); border: 1px solid var(--color-divider); }
+pre { font-family: var(--ff-code); font-size: var(--fs-small); background: var(--color-surface); padding: var(--spacing-lg) 12px; border-left: 3px solid var(--color-primary); white-space: pre-wrap; }
+code { font-family: var(--ff-code); }
+ul, ol { margin: 0 0 var(--spacing-paragraph) 0; padding-left: var(--spacing-indent-list); }
+li { margin-bottom: var(--spacing-li); }
+strong { font-weight: var(--fw-bold); }
+.divider { border-bottom: 1px solid var(--color-divider); margin: var(--spacing-divider) 0; }
+
+/* 封面 */
+.cover-category { text-align: center; color: var(--color-primary); font-size: var(--fs-cover-category); font-weight: 700; letter-spacing: 2px; margin-top: 3cm; }
+section[role="cover"] > h1 { text-align: center; font-size: var(--fs-title); margin-top: var(--spacing-table-block); }
+.cover-subtitle { text-align: center; font-size: var(--fs-cover-subtitle); font-weight: var(--fw-heading); color: var(--color-heading); margin-top: var(--spacing-h-gap); }
+.cover-meta { margin: 2.4cm auto 0 auto; width: 78%; font-size: var(--fs-cover-meta); }
+.cover-meta td { border: none; border-bottom: 1px solid var(--color-divider); padding: var(--spacing-md) var(--spacing-xs); }
+.cover-meta td:first-child { color: var(--color-muted); width: 34%; }
+
+/* 执行摘要 */
+.executive-summary { border-left: var(--summary-border-width) solid var(--color-summary-border); background: var(--color-summary-bg); padding: var(--spacing-section); margin: var(--spacing-h3-top) 0; }
+.summary-header h2 { margin-top: 0; }
+.summary-highlights { margin: var(--spacing-table-block) 0; }
+[data-component="data-card"] {
+  display: inline-flex; flex-direction: column;
+  padding: var(--spacing-block);
+  background: var(--color-bg);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+  border-top: 3px solid var(--color-primary);
+  min-width: 130px; margin-right: var(--spacing-lg); gap: var(--spacing-li);
+}
+[data-component="data-card"][data-title]::before {
+  content: attr(data-title);
+  font-size: var(--fs-small);
+  color: var(--color-muted);
+  margin-bottom: var(--spacing-card-gap);
+}
+.card-value { font-size: var(--fs-card-value); font-weight: var(--fw-bold); line-height: 1.1; color: var(--color-text); }
+.card-unit { font-size: var(--fs-small); color: var(--color-muted); }
+.card-trend { font-size: var(--fs-small); font-weight: var(--fw-bold); }
+.card-trend--up { color: var(--color-success); }
+[data-component="data-card"][data-color="success"] { border-top-color: var(--color-success); }
+[data-component="data-card"][data-color="success"] .card-value { color: var(--color-success); }
+
+.data-emphasis { color: var(--color-emphasis); font-weight: var(--fw-bold); }
+.note { border-left: 3px solid var(--color-primary); background: var(--color-surface); padding: var(--spacing-md) var(--spacing-lg); margin: var(--spacing-table-block) 0; }
+</style>
+</head>
+<body>
+
+<!-- ═════════ 封面 ═════════ -->
+<section role="cover">
+  <p class="cover-category">挑战杯"揭榜挂帅"擂台赛 · 题目 XH-202613 · 赛道C（AI 应用型）</p>
+  <h1>面向雄安新区"城市大脑"的车路云一体化协同管控算法与仿真平台</h1>
+  <p class="cover-subtitle">系统设计与算法报告</p>
+  <table class="cover-meta">
+    <tbody>
+    <tr><td>作品类别</td><td>AI 模型的轻量化部署验证（赛道C）</td></tr>
+    <tr><td>核心内容</td><td>仿真环境构建 · 协同管控算法 · 模型转换与轻量化部署验证 · 评估体系</td></tr>
+    <tr><td>仿真规模</td><td>20 个实测单路口 + 3 条干线走廊（雄安新区典型片区）</td></tr>
+    <tr><td>核心技术</td><td>Dueling DDQN · SUMO/TraCI · ONNX Runtime · 端-边-云协同</td></tr>
+    <tr><td>报告日期</td><td>2026 年 9 月</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ═════════ 正文 ═════════ -->
+<section role="body" data-page-restart="1">
+
+<div class="executive-summary">
+  <div class="summary-header"><h2>执行摘要</h2></div>
+  <div class="summary-highlights">
+    <div data-component="data-card" data-title="20路口平均延误下降" data-color="success">
+      <span class="card-value">76%</span><span class="card-unit">19.33s → 4.58s</span>
+      <span class="card-trend card-trend--up">统一模型全场景为正改善</span>
+    </div>
+    <div data-component="data-card" data-title="干线绿波改善" data-color="success">
+      <span class="card-value">93%</span><span class="card-unit">三条干线 92%~94%</span>
+      <span class="card-trend card-trend--up">车队一路绿波直通</span>
+    </div>
+    <div data-component="data-card" data-title="边缘推理延迟" data-color="primary">
+      <span class="card-value">20 μs</span><span class="card-unit">ONNX Runtime 纯CPU</span>
+      <span class="card-trend card-trend--up">较 PyTorch 加速 6.3 倍</span>
+    </div>
+    <div data-component="data-card" data-title="部署动作一致率" data-color="primary">
+      <span class="card-value">100%</span><span class="card-unit">1.5 万状态验证</span>
+      <span class="card-trend card-trend--up">ONNX-FP32 vs PyTorch</span>
+    </div>
+  </div>
+  <div class="summary-body">
+    <p>本作品面向雄安新区"窄路密网"复杂城市肌理下的交通管控难题，构建了覆盖"仿真环境—协同算法—评估验证"全链条的车路云一体化协同管控平台，并按赛道C 要求完成 AI 交通管控模型从数据处理、模型训练、模型转换到轻量化部署验证的全流程闭环：统一 Dueling DDQN 模型同时管控 20 个形态各异的实测路口与 3 条干线走廊，平均车均延误下降 <span class="data-emphasis">76%</span>；模型仅 16,517 参数，经 ONNX 转换后在边缘侧纯 CPU 以 <span class="data-emphasis">20 微秒</span>延迟推理，1.5 万状态动作一致率 <span class="data-emphasis">100%</span>，满足车规级算力约束下的实时部署要求。</p>
+  </div>
+</div>
+
+<h2>一、项目概述</h2>
+
+<p>项目以 20 个实测单路口与 3 条干线走廊为仿真对象，采用 Dueling Double DQN 深度强化学习算法实现多路口信号协同控制。核心成果包括：</p>
+
+<ol>
+  <li><strong>一个统一模型覆盖全部 23 个场景</strong>：61 维统一状态空间（含邻居相位上下文），同一套网络参数同时部署到 20 个形态各异的单路口与 3 条干线，20 路口平均车均延误由 19.33s 降至 <span class="data-emphasis">4.58s（下降 76%）</span>，干线延误下降 <span class="data-emphasis">92%~94%</span>；</li>
+  <li><strong>完整的模型轻量化部署验证链路</strong>：PyTorch 训练模型经 ONNX 转换（FP32/FP16/INT8 三档），在 1.5 万个测试状态上验证动作一致率 100%，边缘侧单样本推理仅 20 微秒，并在仿真链路中完成部署一致性回归（PyTorch 与 ONNX 车均延误均为 4.82s）；</li>
+  <li><strong>真实数据驱动的高保真仿真环境</strong>：场景源自雄安新区典型片区实测交通调查数据，13/20 为异形路口，如实复现"窄路密网"高密度异形交叉口特征；</li>
+  <li><strong>企业级集成管控平台</strong>：九大功能模块、17 个 REST 接口、Docker 容器化部署，纯 CPU 可运行。</li>
+</ol>
+
+<div class="divider"></div>
+
+<h2>二、需求理解与总体方案</h2>
+
+<p>本章从赛题需求出发，给出平台的总体技术方案与"端-边-云"系统架构。</p>
+
+<h3>2.1 需求分析</h3>
+
+<p>赛题要求面向雄安新区"城市大脑"，攻克三个工程技术需求：高保真可编程仿真场景生成工具、"云-边-端"异构协同的轻量化决策算法框架、服务标准制定的性能量化评估与基准测试体系。赛道C 进一步要求完成 AI 模型"数据处理—模型训练/选择—模型转换—模型部署"全过程。</p>
+
+<p>"窄路密网"片区的管控难点在于：路口间距短、异形交叉口（T 字/多进口/斜交）占比高、车流相互作用强，传统单点定时控制无法应对；而纯云端集中控制面临通信延迟与单点故障风险，纯分布式车端决策又无法保障全局最优。</p>
+
+<h3>2.2 总体架构：端-边-云三层协同</h3>
+
+<p>平台采用"端-边-云"三层架构，与车路云一体化主题严格对应：</p>
+
+<ul>
+  <li><strong>端（感知层）</strong>：SUMO/TraCI 逐秒采样车辆轨迹、车道排队、信号相位与瞬时油耗；视频管线提供 YOLOv8n 目标检测 + DeepSORT 多目标追踪的真实感知链路；</li>
+  <li><strong>边（边缘协同层）</strong>：路侧单元（RSU）承担数据聚合与模型推理——边缘节点对进口道排队做几何归并、在线检测停车事件、积分油耗；<strong>AI 模型以 ONNX Runtime 在边缘侧纯 CPU 推理</strong>，单次决策 20 微秒，完全满足 10~60 秒决策周期的实时性约束；</li>
+  <li><strong>云（决策与展示层）</strong>：承担模型训练（Dueling DDQN 离线训练与断点续训）、性能评估、标准化报告生成与实时可视化看板。</li>
+</ul>
+
+<h3>2.3 技术路线总览</h3>
+
+<pre>实测调查数据(团队数据V2) ──参数化建模──▶ SUMO仿真环境(20路口+3干线+扰动注入)
+                                            │ TraCI仿真真值
+                                            ▼
+                              61维状态构建(4方向×3转向×3特征+相位+邻居上下文)
+                                            ▼
+                        Dueling DDQN训练(云端) ──▶ dqn_unified.pt (16,517参数)
+                                            │ torch.onnx.export
+                                            ▼
+                    ONNX转换 FP32/FP16/INT8 ──▶ ONNX Runtime边缘推理(20μs/次)
+                                            ▼
+              六维+安全指标评估(效率/能耗/安全/舒适) ──▶ 标准化评估报告</pre>
+
+<div class="divider"></div>
+
+<h2>三、仿真环境构建方法</h2>
+
+<p>本章说明仿真场景的数据来源、"窄路密网"特征复现方式与扰动注入能力，对应评分细则"仿真环境构建质量"。</p>
+
+<h3>3.1 真实数据溯源</h3>
+
+<p>仿真场景不是理想化的"玩具路网"，而是源自雄安新区典型片区的实测交通调查数据（团队数据V2），数据链路完整可审计：</p>
+
+<table>
+  <thead><tr><th>数据表</th><th>内容</th><th>规模</th></tr></thead>
+  <tbody>
+    <tr><td>03_路口基础信息表</td><td>20 路口几何形态、相位结构、人工核对记录</td><td>20 条</td></tr>
+    <tr><td>01_统一交通流数据</td><td>早高峰/平峰/晚高峰 15 分钟分转向流量</td><td>480 条</td></tr>
+    <tr><td>02_统一信号配时数据</td><td>三时段相位/周期/全红配时</td><td>163 条</td></tr>
+    <tr><td>05_数据质量报告</td><td>缺失/重复/异常审计</td><td>全量</td></tr>
+    <tr><td>06_数据修正记录</td><td>按比赛方确认意见与高德地图核对修正</td><td>逐条留痕</td></tr>
+  </tbody>
+</table>
+
+<p>数据经过三方核对：高德地图逐路口人工核对（20/20 一致）；比赛方老师确认修正（路口13 删除违规左转相位、路口16 流量笔误 551→51、路口12 周期按相位合计修正）；质量审计确认 480 条交通流记录零重复、零需核查缺失。</p>
+
+<h3>3.2 "窄路密网"特征复现</h3>
+
+<p>20 个路口按实测几何形态参数化生成（build_sumo_model.py），异形路口占 <span class="data-emphasis">65%（13/20）</span>：</p>
+
+<table>
+  <thead><tr><th>形态类别</th><th>数量</th><th>说明</th></tr></thead>
+  <tbody>
+    <tr><td>标准十字四相位</td><td>6</td><td>常规控制基准</td></tr>
+    <tr><td>T 字/三进口</td><td>6</td><td>进口缺失拓扑裁剪</td></tr>
+    <tr><td>四进口两相位</td><td>3</td><td>直左混放</td></tr>
+    <tr><td>五进口异形</td><td>1</td><td>东北进口单独建模</td></tr>
+    <tr><td>斜交十字（对角放行）</td><td>2</td><td>四斜向进口</td></tr>
+    <tr><td>其他（三相位/三进口两相位）</td><td>2</td><td>分时段变相位等</td></tr>
+  </tbody>
+</table>
+
+<p>此外还存在道路整体旋转（路口4）、早晚高峰与平峰相位结构切换（路口13）等真实复杂形态。3 条干线走廊按片区连续路口串接（东西向 4 信号、南北向 5 信号、混合方向 2 信号），与出题单位提供的容东片区公开规划资料对照。</p>
+
+<h3>3.3 扰动注入</h3>
+
+<p>平台"路网管理"模块支持一键注入需求扰动，用于测试非标工况下的算法鲁棒性：早高峰 ×1.5、平峰 ×0.7、突发事件 ×1.4、随机场景，对应赛题"施工占道、大型活动等扰动事件"要求。</p>
+
+<h3>3.4 数据集缺陷诊断（平台验证能力的佐证）</h3>
+
+<p class="note">&nbsp;&nbsp;数据集自带的 coord 协调信号程序存在缺陷：12 字符状态串套用在 11 连接路口上，导致走廊方向永无绿灯、0/800 辆车完成。平台采集器中以 --program 0 切回内置程序作为基线。该缺陷的发现与诊断过程本身即是仿真平台验证能力的直接证明。</p>
+
+<div class="divider"></div>
+
+<h2>四、协同管控算法设计</h2>
+
+<p>本章阐述协同管控算法的选型理由、状态/动作/奖励空间设计与训练稳定机制。</p>
+
+<h3>4.1 算法选型与设计思路</h3>
+
+<p>赛道C 的核心约束是"轻量化部署"——模型必须能在车规级芯片算力与通信带宽约束下运行。据此选择 Dueling Double DQN 而非更大的多智能体方案：</p>
+
+<ul>
+  <li><strong>推理成本极低</strong>：单次决策仅需一次前向传播，网络仅 16,517 参数，非常适合边缘部署；</li>
+  <li><strong>无通信开销</strong>：各路口共享同一策略网络、独立决策，邻居信息通过状态空间显式编码，不依赖实时多智能体通信；</li>
+  <li><strong>AI 与传统控制融合</strong>：AI 只负责相位选择，交通工程硬约束（黄灯过渡、最小/最大绿灯、全红清空）在环境层兜底，保证任何决策不违反交通安全规则。</li>
+</ul>
+
+<h3>4.2 统一状态空间（61 维）</h3>
+
+<p>状态空间设计是"一个模型通吃所有场景"的关键：</p>
+
+<pre>41维单路口本体 = 4进口方向 × 3转向 × (密度/排队/速度) + 4相位one-hot + 相位时长
+20维邻居上下文 = 4方向邻居槽位 × 5维邻居相位特征(单路口恒为0)</pre>
+
+<p>单路口与干线共享同一网络拓扑：单路口的邻居槽位恒为 0，干线路口通过邻居相位上下文"看到"上游刚放行的车队（约 36 秒后抵达），提前腾空下游绿灯——这是绿波协同在模型层面的实现机制，也是 AI 与传统绿波控制融合的具体形态。</p>
+
+<h3>4.3 相位语义与真实路口结构对齐</h3>
+
+<p>4 个动作对应真实路口的"混合放行 + 左转保护"相位结构：南北向直行左转（直行右转绿灯、左转让行绿）、南北向左转保护、东西向直行左转、东西向左转保护。该设计修复了两个历史缺陷（右转全程红灯导致延误 110s+；直左拆分导致绿灯利用率低），使原始固定配时的相位序列成为智能体策略空间的子集。消融实验证明其必要性：旧相位语义下路口1 延误卡在 20s，新语义下降至 <span class="data-emphasis">4.75s</span>。</p>
+
+<h3>4.4 网络结构与训练机制</h3>
+
+<p>Dueling 架构：共享特征层 FC(61→128)→ReLU→FC(128→64)→ReLU，价值流 FC(64→1) 与优势流 FC(64→4) 汇合为 Q = V + A − mean(A)。训练稳定机制包括：</p>
+
+<table>
+  <thead><tr><th>机制</th><th>作用</th></tr></thead>
+  <tbody>
+    <tr><td>Prioritized Experience Replay</td><td>高 TD 误差样本优先学习（含新样本优先级 bug 修复）</td></tr>
+    <tr><td>3-step 经验回放</td><td>信用分配速度约 3 倍于 1-step</td></tr>
+    <tr><td>Huber 损失</td><td>抗离群 TD 误差，大误差区间梯度有上界</td></tr>
+    <tr><td>学习率 warmup + 余弦退火</td><td>3e-3 高学习率冷启动不发散、后期精细收敛</td></tr>
+    <tr><td>目标网络 Polyak 软更新</td><td>τ=0.005，训练目标平滑漂移</td></tr>
+    <tr><td>梯度裁剪 + loss 熔断</td><td>grad-norm clip 10.0，NaN/Inf 直接跳过更新</td></tr>
+  </tbody>
+</table>
+
+<h3>4.5 奖励函数</h3>
+
+<pre>r = -α·tanh(ΔWait/s_d) - β·tanh(Wait/s_w) + γ·Throughput - φ·tanh(MaxLaneWait/s_w)</pre>
+
+<p>各项经 tanh 平滑饱和，同一套默认参数同时适配轻度/严重拥堵路口；末项为公平性惩罚，防止某方向被长期饿死；等待尺度参考值跨 episode 自动校准并按路口分别持久化，使多路口轮换训练时 reward 尺度可比。</p>
+
+<div class="divider"></div>
+
+<h2>五、AI 模型轻量化部署验证（赛道C 核心）</h2>
+
+<p>本章按赛道C 实现重点，给出"数据处理—模型训练/选择—模型转换—模型部署"全流程的实现与验证数据。</p>
+
+<h3>5.1 全流程闭环</h3>
+
+<table>
+  <thead><tr><th>环节</th><th>实现</th><th>产物</th></tr></thead>
+  <tbody>
+    <tr><td>数据处理</td><td>TraCI 仿真真值 61 维归一化状态 + tanh 饱和奖励 + 尺度自动校准</td><td>61 维状态构建器</td></tr>
+    <tr><td>模型训练</td><td>Dueling DDQN，295 轮多场景轮换训练，断点续训</td><td>dqn_unified.pt</td></tr>
+    <tr><td>模型选择</td><td>逐轮评估择优，20 单路口+3 干线全场景验证</td><td>dqn_eval_unified_after.csv</td></tr>
+    <tr><td>模型转换</td><td>torch.onnx.export 动态 batch 导出 + FP16 半精度 + INT8 动态量化（export_onnx.py）</td><td>三档 ONNX 模型</td></tr>
+    <tr><td>模型部署</td><td>ONNX Runtime CPU 边缘推理（sumo_pipeline --runtime onnx）</td><td>部署一致性回归</td></tr>
+  </tbody>
+</table>
+
+<h3>5.2 转换与精度一致性验证</h3>
+
+<p>在 15,000 个覆盖 [0,1] 取值域的测试状态上（均匀分布 + 近边界分布 + 角点），对比 PyTorch 与各 ONNX 档位输出：</p>
+
+<table>
+  <thead><tr><th>对比</th><th>最大 Q 值绝对误差</th><th>动作一致率</th><th>结论</th></tr></thead>
+  <tbody>
+    <tr><td>PyTorch vs ONNX-FP32</td><td>1.9×10⁻⁵</td><td><span class="data-emphasis">100.00%</span></td><td>默认部署格式</td></tr>
+    <tr><td>PyTorch vs ONNX-FP16</td><td>3.2×10⁻¹</td><td>99.87%</td><td>边缘 NPU 芯片适用</td></tr>
+    <tr><td>PyTorch vs ONNX-INT8</td><td>1.7</td><td>98.61%</td><td>极致压缩，极端场景备用</td></tr>
+  </tbody>
+</table>
+
+<h3>5.3 轻量化基准</h3>
+
+<table>
+  <thead><tr><th>指标</th><th>PyTorch .pt</th><th>ONNX-FP32</th><th>ONNX-FP16</th><th>ONNX-INT8</th></tr></thead>
+  <tbody>
+    <tr><td>体积</td><td>208 KB（含优化器）</td><td><span class="data-emphasis">77.6 KB</span></td><td>44.9 KB</td><td>26.9 KB</td></tr>
+    <tr><td>单样本延迟（CPU 均值）</td><td>128 μs</td><td><span class="data-emphasis">20 μs</span></td><td>194 μs</td><td>25 μs</td></tr>
+    <tr><td>吞吐</td><td>7,800 次/s</td><td>49,252 次/s</td><td>5,154 次/s</td><td>40,183 次/s</td></tr>
+  </tbody>
+</table>
+
+<p>说明：FP16 在 x86 CPU 上因无原生半精度运算单元而慢于 FP32，其价值在于具备原生 FP16 的边缘 NPU 场景（如实记录）。模型仅 16,517 参数、77.6 KB，本身就是"轻量化"的直接证据；信号控制决策周期为 10~60 秒，20 微秒的推理延迟占用决策预算不足 0.0002%，纯 CPU 即可运行，无需 GPU，满足车规级算力约束。</p>
+
+<h3>5.4 部署一致性回归</h3>
+
+<p>将 ONNX 部署模型接入仿真链路（--runtime onnx，OnnxPolicyAgent 与训练智能体接口对齐），同场景同种子 600 秒仿真回归：PyTorch 与 ONNX 车均延误均为 <span class="data-emphasis">4.82s</span>，41 步决策的相位选择序列逐步一致（相位分布 {0:21, 1:0, 2:20, 3:0} 完全相同）。证明边缘部署形态与云端训练模型行为等价。</p>
+
+<h3>5.5 端侧感知轻量化</h3>
+
+<p>视频管线的目标检测采用 YOLOv8n（3.2M 参数，Ultralytics 最轻量档），支持导出 ONNX 供端侧推理；ReID 模型以 ONNX 格式接入（OpenCV DNN 运行时），端-边推理链路全程不依赖训练框架。</p>
+
+<div class="divider"></div>
+
+<h2>六、实验结果与对比分析</h2>
+
+<p>本章给出多场景、多基线、多维度的实验数据与消融分析，全部结果可由仓库脚本一键复现。</p>
+
+<h3>6.1 单路口对比（3600s，3 种子均值，tripinfo 口径）</h3>
+
+<table>
+  <thead><tr><th>场景</th><th>方案</th><th>车均延误</th><th>完成车辆</th><th>DQN 优势</th></tr></thead>
+  <tbody>
+    <tr><td rowspan="4">路口1（需求 1853 辆/h）</td><td>DQN</td><td><span class="data-emphasis">4.75s</span></td><td>1829（98.7%）</td><td>—</td></tr>
+    <tr><td>原始固定配时</td><td>13.59s</td><td>1828</td><td>降 65%</td></tr>
+    <tr><td>Webster</td><td>22.19s</td><td>1816</td><td>降 79%</td></tr>
+    <tr><td>爬山优化</td><td>18.41s</td><td>—</td><td>降 74%</td></tr>
+    <tr><td rowspan="4">路口18（需求 2837 辆/h，近饱和）</td><td>DQN</td><td><span class="data-emphasis">4.05s</span></td><td>2798（98.6%）</td><td>—</td></tr>
+    <tr><td>原始固定配时</td><td>81.17s</td><td>2185（77%）</td><td>降 95%</td></tr>
+    <tr><td>Webster</td><td>57.72s</td><td>2600（92%）</td><td>降 93%</td></tr>
+    <tr><td>爬山优化</td><td>24.48s</td><td>—</td><td>降 83%</td></tr>
+  </tbody>
+</table>
+
+<p>统一模型在全部 20 个单路口改善幅度 32%~96%、全部为正，无专项模型性能损失。</p>
+
+<h3>6.2 干线绿波协同（3600s，内置 42/42 同步程序基线）</h3>
+
+<table>
+  <thead><tr><th>干线</th><th>基线延误</th><th>DQN 协同</th><th>改善</th></tr></thead>
+  <tbody>
+    <tr><td>干线一（4 路口）</td><td>103.79s</td><td><span class="data-emphasis">7.57s</span></td><td><span class="data-emphasis">93%</span></td></tr>
+    <tr><td>干线二（5 路口）</td><td>137.39s</td><td><span class="data-emphasis">7.66s</span></td><td><span class="data-emphasis">94%</span></td></tr>
+    <tr><td>干线三（2 路口）</td><td>40.51s</td><td><span class="data-emphasis">3.34s</span></td><td><span class="data-emphasis">92%</span></td></tr>
+  </tbody>
+</table>
+
+<p>时空轨迹图可见绿色斜带（车队一路绿波直通）；短窗口（600s）对比：通过量 +40%、等待 −96%、停车 −80%、油耗 −24%。</p>
+
+<h3>6.3 多维指标（路口1，600s，同种子）</h3>
+
+<p>平均等待 −81%、平均排队 −67%、人均停车 −41%、油耗 −13%、平均车速 +18%、通过量 +1.4%，六个维度全部改善。</p>
+
+<h3>6.4 安全指标（新增）</h3>
+
+<p>在效率/能耗指标之外补充安全维度：急刹事件（瞬时减速度超过 5.0 m/s²，即超出 SUMO 车辆常规减速上限 4.5 m/s² 的非常规制动）与二次停车率（同一车辆停车 ≥2 次的比例，反映反复启停）。300s 同种子样本：DQN 车均急刹 0.015 次、二次停车率 3.8%、人均停车 0.489 次；固定配时车均急刹 0、二次停车率 7.0%、人均停车 0.758 次——DQN 显著减少反复启停，常规负荷下两方案急刹率均处于极低水平。</p>
+
+<div class="divider"></div>
+
+<h2>七、系统集成与标准化价值</h2>
+
+<p>本章介绍企业级管控平台的功能集成、接口规范与面向地方标准的贡献点。</p>
+
+<h3>7.1 企业级管控平台（九大模块）</h3>
+
+<p>总览仪表盘（实时 KPI/趋势/资源监控）、路网管理（场景清单+雄安实测溯源+扰动注入）、GIS 地图监控（干线拓扑+路口形态标注）、协同管控算法（训练控制与曲线）、<strong>模型部署（ONNX 转换链路/精度一致性/轻量化基准/部署拓扑）</strong>、信号控制仿真（相位灯色+六维指标实时叠加，固定配时/DQN 可切）、性能评估（同种子对比+六维雷达）、云边端协同（三层实时状态）、接口文档（REST 规范+评分标准对照）。</p>
+
+<h3>7.2 接口规范</h3>
+
+<p>17 个 REST API 全部文档化（方法/路径/请求体/示例），并提供 Postman/Apifox 可导入的接口集合文件（XH-202613_platform_api.postman_collection.json），支持用 Postman/Apifox 定义并模拟测试关键数据接口，对应赛题功能一任务1 的明确要求。</p>
+
+<h3>7.3 标准化贡献</h3>
+
+<ol>
+  <li><strong>接口规范</strong>：端-边-云数据流与 REST 接口定义可直接作为《协同管控系统数据接口》类标准的参考；</li>
+  <li><strong>评估体系</strong>：六维指标集（延误/时间损失/车速/通过量/等待/油耗）+ 安全维度（急刹率/二次停车率）+ 同种子可复现实验协议，符合"标准化格式的测试报告"要求；</li>
+  <li><strong>基准测试流程</strong>：固定配时/Webster/爬山三基线 + 扰动注入工况 + 模型部署一致性验证，为地方标准中性能指标设定提供量化依据；</li>
+  <li><strong>容器化交付</strong>：Dockerfile 一键部署，纯 CPU 可运行，降低标准验证的复现门槛。</li>
+</ol>
+
+<div class="divider"></div>
+
+<h2>八、结论与展望</h2>
+
+<p>本作品完成了面向雄安新区"城市大脑"的车路云一体化协同管控算法与仿真平台：以真实调查数据构建高保真"窄路密网"仿真环境，以统一 Dueling DDQN 模型实现 23 场景协同管控（平均延误下降 <span class="data-emphasis">76%</span>、干线绿波改善 <span class="data-emphasis">92%~94%</span>），并按赛道C 要求打通"训练—转换—量化—边缘部署"全链路，用 1.5 万状态一致性验证与部署回归证明 AI 模型可以在纯 CPU 边缘侧以 20 微秒延迟无损运行。</p>
+
+<p>后续方向：将 ONNX 部署链路延伸至真实 RSU 硬件（如 Jetson 系列）实测；在状态空间中加入公交优先与应急车辆信号优先；将评估协议与接口规范整理为标准草案提交河北省智能网联汽车标准化技术委员会。</p>
+
+<p class="note">&nbsp;&nbsp;附：可运行代码、部署运行说明、实验评估数据（CSV/图表）、演示视频另附；本报告全部数据可由仓库脚本一键复现。</p>
+
+</section>
+</body>
+</html>
